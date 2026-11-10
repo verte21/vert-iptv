@@ -58,7 +58,7 @@ cp "$FINAL_WGT" "$USB_DIR/SSSP/vertIPTV.wgt"
 cat > "$USB_DIR/SSSP/sssp_config.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <widget>
-    <ver>1.0.0</ver>
+    <ver>1.1.0</ver>
     <size>${WGT_BYTES}</size>
     <widgetname>vertIPTV</widgetname>
     <webtype>tizen</webtype>
