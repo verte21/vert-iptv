@@ -799,7 +799,7 @@
       } else if (isPast) {
         pillHtml = '<span class="prog-pill prog-pill--replay">↺ Replay</span>';
       } else if (isLive) {
-        pillHtml = '<span class="prog-pill prog-pill--live">↺ From Start</span>';
+        pillHtml = '<span class="prog-pill prog-pill--live">● LIVE</span>';
       } else {
         pillHtml = '<span class="prog-pill prog-pill--upcoming">Upcoming</span>';
       }
@@ -896,6 +896,18 @@
     var nowSec = Math.floor(Date.now() / 1000);
     if (program.s > nowSec) {
       showToast('Upcoming program — airs at ' + formatClock(program.s));
+      return;
+    }
+
+    // Selecting the currently airing (newest / live) show in the guide tunes Live TV instead of restarting from 00:00
+    if (nowSec >= program.s && nowSec < program.e) {
+      if (channel.key === state.playingChannelKey && state.playbackMode === 'live') {
+        setGuideOpen(false);
+        showOsd(4200);
+      } else {
+        tuneLiveChannel(channel, true);
+        showToast('● Live TV: ' + program.t);
+      }
       return;
     }
 
