@@ -89,7 +89,13 @@
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Scrub ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live TV',
       osdLiveControlsHtml:
-        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> 3-Day Replay &nbsp;·&nbsp; <kbd>▶</kbd> Info',
+        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> 3-Day Replay &nbsp;·&nbsp; <kbd>▶</kbd> Player Controls',
+      osdInteractiveControlsHtml:
+        '<kbd>◀▶</kbd> Select / Scrub &nbsp;·&nbsp; <kbd>▲▼</kbd> Bar / Buttons &nbsp;·&nbsp; <kbd>OK</kbd> Confirm &nbsp;·&nbsp; <kbd>BACK</kbd> Close',
+      osdBtnRestart: '⏮ From Start',
+      osdBtnPause: '⏯ Pause / Play',
+      osdBtnLive: '● Live',
+      osdBtnGuide: '☰ Guide',
       modalTitle: 'Playlist & 3-Day EPG Setup',
       modalSubtitleHtml:
         'Navigate with <strong>Arrows</strong>, press <strong>OK</strong> on a text box to edit (and <strong>OK / Esc</strong> when done), or import directly from a USB pendrive.',
@@ -168,7 +174,13 @@
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Spulen ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live-TV',
       osdLiveControlsHtml:
-        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Sender &nbsp;·&nbsp; <kbd>◀</kbd> 3-Tage-Replay &nbsp;·&nbsp; <kbd>▶</kbd> Info',
+        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Sender &nbsp;·&nbsp; <kbd>◀</kbd> 3-Tage-Replay &nbsp;·&nbsp; <kbd>▶</kbd> Steuerung',
+      osdInteractiveControlsHtml:
+        '<kbd>◀▶</kbd> Auswahl / Spulen &nbsp;·&nbsp; <kbd>▲▼</kbd> Leiste / Tasten &nbsp;·&nbsp; <kbd>OK</kbd> OK &nbsp;·&nbsp; <kbd>BACK</kbd> Schließen',
+      osdBtnRestart: '⏮ Vom Anfang',
+      osdBtnPause: '⏯ Pause / Play',
+      osdBtnLive: '● Live',
+      osdBtnGuide: '☰ Guide',
       modalTitle: 'Playlist & 3-Tage-EPG Einstellungen',
       modalSubtitleHtml:
         'Mit <strong>Pfeiltasten</strong> navigieren, <strong>OK</strong> im Textfeld zum Tippen drücken (und <strong>OK / Esc</strong> zum Beenden) oder direkt vom USB-Stick laden.',
@@ -247,7 +259,13 @@
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Przewiń ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pauza/Start &nbsp;·&nbsp; <kbd>▲▼</kbd> Przewodnik &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Na żywo',
       osdLiveControlsHtml:
-        '<kbd>OK</kbd> Przewodnik &nbsp;·&nbsp; <kbd>▲▼</kbd> Kanał &nbsp;·&nbsp; <kbd>◀</kbd> Archiwum 3 dni &nbsp;·&nbsp; <kbd>▶</kbd> Info',
+        '<kbd>OK</kbd> Przewodnik &nbsp;·&nbsp; <kbd>▲▼</kbd> Kanał &nbsp;·&nbsp; <kbd>◀</kbd> Archiwum 3 dni &nbsp;·&nbsp; <kbd>▶</kbd> Sterowanie',
+      osdInteractiveControlsHtml:
+        '<kbd>◀▶</kbd> Wybór / Przewijanie &nbsp;·&nbsp; <kbd>▲▼</kbd> Pasek / Przyciski &nbsp;·&nbsp; <kbd>OK</kbd> Zatwierdź &nbsp;·&nbsp; <kbd>BACK</kbd> Zamknij',
+      osdBtnRestart: '⏮ Od początku',
+      osdBtnPause: '⏯ Pauza / Start',
+      osdBtnLive: '● Na żywo',
+      osdBtnGuide: '☰ Przewodnik',
       modalTitle: 'Ustawienia listy M3U i 3-dniowego EPG',
       modalSubtitleHtml:
         'Poruszaj się <strong>Strzałkami</strong>, naciśnij <strong>OK</strong> na polu tekstowym aby pisać (oraz <strong>OK / Esc</strong> po zakończeniu) lub wczytaj listę z pendrive USB.',
@@ -358,6 +376,9 @@
 
     // OSD & Numpad timers
     osdVisible: false,
+    osdInteractive: false,
+    osdFocusZone: 'buttons', // 'buttons' | 'track'
+    osdBtnIdx: 0,
     osdTimer: null,
     numpadDigits: '',
     numpadTimer: null,
@@ -1160,7 +1181,9 @@
     showOsd(4200);
   }
 
-  function startArchivePlayback(channel, program, initialOffsetSec) {
+  var OSD_ACTIONS = ['restart', 'rew5m', 'rew30s', 'playpause', 'ff30s', 'ff5m', 'golive', 'guide'];
+
+  function startArchivePlayback(channel, program, initialOffsetSec, forceArchive) {
     if (!channel || !program) return;
     var nowSec = Math.floor(Date.now() / 1000);
     if (program.s > nowSec) {
@@ -1168,11 +1191,11 @@
       return;
     }
 
-    // Selecting the currently airing (newest / live) show in the guide tunes Live TV instead of restarting from 00:00
-    if (nowSec >= program.s && nowSec < program.e) {
+    // Selecting the currently airing (newest / live) show in the guide tunes Live TV unless forceArchive is requested
+    if (!forceArchive && nowSec >= program.s && nowSec < program.e) {
       if (channel.key === state.playingChannelKey && state.playbackMode === 'live') {
         setGuideOpen(false);
-        showOsd(4200);
+        showOsd(4200, false);
       } else {
         tuneLiveChannel(channel, true);
         showToast(t('toastLiveTv') + program.t);
@@ -1195,7 +1218,7 @@
     player.playArchive(channel, program, initialOffsetSec || 0, state.settings);
 
     setGuideOpen(false);
-    showOsd(5500);
+    showOsd(6500, true);
     showToast(t('pillReplay') + ': ' + program.t + ' (' + formatShortDay(program.s) + ' ' + formatClock(program.s) + ')');
   }
 
@@ -1231,6 +1254,39 @@
     }
   }
 
+  function getActiveOsdProgramInfo() {
+    var ch = getChannelByKey(state.playingChannelKey) || state.filteredChannels[state.focusedChannelIdx];
+    if (!ch) return null;
+    var nowSec = Math.floor(Date.now() / 1000);
+    if (state.playbackMode === 'archive' && state.activeArchiveProgram) {
+      var p = state.activeArchiveProgram;
+      var dur = Math.max(60, p.e - p.s);
+      var cur = state.pendingScrubOffsetSec !== null ? state.pendingScrubOffsetSec : (player.getCurrentArchiveOffsetSec() || state.archivePosSec || 0);
+      var maxSeek = p.e <= nowSec ? dur - 5 : Math.max(0, Math.min(dur - 5, nowSec - p.s));
+      return { ch: ch, prog: p, dur: dur, curOffset: Math.max(0, Math.min(dur, cur)), maxSeek: maxSeek, isLiveProg: nowSec >= p.s && nowSec < p.e };
+    }
+    var sched = getNowAndNextProgram(ch, nowSec);
+    var liveProg = sched.now || { s: nowSec - 3600, e: nowSec + 1800, t: ch.name, d: '' };
+    var lDur = Math.max(60, liveProg.e - liveProg.s);
+    var livePos = state.pendingScrubOffsetSec !== null ? state.pendingScrubOffsetSec : Math.max(0, nowSec - liveProg.s);
+    var lMaxSeek = Math.max(0, Math.min(lDur - 5, nowSec - liveProg.s));
+    return { ch: ch, prog: liveProg, dur: lDur, curOffset: Math.max(0, Math.min(lDur, livePos)), maxSeek: lMaxSeek, isLiveProg: true };
+  }
+
+  function renderOsdFocus() {
+    var isTrackFocused = state.osdInteractive && state.osdFocusZone === 'track';
+    if (dom.osdProgressTrack) {
+      dom.osdProgressTrack.classList.toggle('is-focused', isTrackFocused);
+    }
+    if (dom.osdActionsRow) {
+      var btns = dom.osdActionsRow.children;
+      for (var i = 0; i < btns.length; i++) {
+        var bFocused = state.osdInteractive && state.osdFocusZone === 'buttons' && i === state.osdBtnIdx;
+        btns[i].classList.toggle('is-focused', bFocused);
+      }
+    }
+  }
+
   function updateOsdContent() {
     var ch = getChannelByKey(state.playingChannelKey) || state.filteredChannels[state.focusedChannelIdx];
     if (!ch) return;
@@ -1239,13 +1295,14 @@
     if (dom.osdChName) dom.osdChName.textContent = ch.name;
 
     var nowSec = Math.floor(Date.now() / 1000);
+    var pct = 100;
 
     if (state.playbackMode === 'archive' && state.activeArchiveProgram) {
       var p = state.activeArchiveProgram;
       var dur = Math.max(60, p.e - p.s);
       var pos = state.pendingScrubOffsetSec !== null ? state.pendingScrubOffsetSec : state.archivePosSec;
       pos = Math.max(0, Math.min(dur, pos));
-      var pct = Math.max(0, Math.min(100, (pos / dur) * 100));
+      pct = Math.max(0, Math.min(100, (pos / dur) * 100));
 
       if (dom.osdModeBadge) {
         dom.osdModeBadge.className = 'mode-badge mode-badge--archive';
@@ -1257,10 +1314,9 @@
       }
       if (dom.osdTimeStart) dom.osdTimeStart.textContent = formatClockWithSec(p.s + pos);
       if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = formatClock(p.e);
-      if (dom.osdProgressFill) dom.osdProgressFill.style.width = pct.toFixed(1) + '%';
       if (dom.osdNextInfo) dom.osdNextInfo.textContent = p.d || t('osdCatchupFallback');
       if (dom.osdControlsHint) {
-        dom.osdControlsHint.innerHTML = t('osdArchiveControlsHtml');
+        dom.osdControlsHint.innerHTML = state.osdInteractive ? t('osdInteractiveControlsHtml') : t('osdArchiveControlsHtml');
       }
     } else {
       var sched = getNowAndNextProgram(ch, nowSec);
@@ -1270,11 +1326,19 @@
       }
       if (sched.now) {
         var lDur = Math.max(60, sched.now.e - sched.now.s);
-        var lPct = Math.max(0, Math.min(100, ((nowSec - sched.now.s) / lDur) * 100));
-        if (dom.osdProgTitle) dom.osdProgTitle.textContent = sched.now.t;
-        if (dom.osdTimeStart) dom.osdTimeStart.textContent = formatClock(sched.now.s);
+        var lPos = state.pendingScrubOffsetSec !== null ? state.pendingScrubOffsetSec : Math.max(0, nowSec - sched.now.s);
+        lPos = Math.max(0, Math.min(lDur, lPos));
+        pct = Math.max(0, Math.min(100, (lPos / lDur) * 100));
+        if (dom.osdProgTitle) {
+          var lScrub = state.pendingScrubOffsetSec !== null ? '  [Seek -> ' + formatClockWithSec(sched.now.s + lPos) + ']' : '';
+          dom.osdProgTitle.textContent = sched.now.t + lScrub;
+        }
+        if (dom.osdTimeStart) {
+          dom.osdTimeStart.textContent = state.pendingScrubOffsetSec !== null
+            ? formatClockWithSec(sched.now.s + lPos)
+            : formatClock(sched.now.s);
+        }
         if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = formatClock(sched.now.e);
-        if (dom.osdProgressFill) dom.osdProgressFill.style.width = lPct.toFixed(1) + '%';
         if (dom.osdNextInfo) {
           dom.osdNextInfo.textContent = sched.next
             ? t('osdUpNext') + ' (' + formatClock(sched.next.s) + '): ' + sched.next.t
@@ -1284,28 +1348,46 @@
         if (dom.osdProgTitle) dom.osdProgTitle.textContent = t('osdLiveBroadcast');
         if (dom.osdTimeStart) dom.osdTimeStart.textContent = '--:--';
         if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = '--:--';
-        if (dom.osdProgressFill) dom.osdProgressFill.style.width = '100%';
+        pct = 100;
         if (dom.osdNextInfo) dom.osdNextInfo.textContent = t('osdLiveHintText');
       }
       if (dom.osdControlsHint) {
-        dom.osdControlsHint.innerHTML = t('osdLiveControlsHtml');
+        dom.osdControlsHint.innerHTML = state.osdInteractive ? t('osdInteractiveControlsHtml') : t('osdLiveControlsHtml');
       }
     }
+
+    var pctStr = pct.toFixed(1) + '%';
+    if (dom.osdProgressFill) dom.osdProgressFill.style.width = pctStr;
+    if (dom.osdProgressThumb) dom.osdProgressThumb.style.left = pctStr;
+    if (dom.osdProgressTrack) dom.osdProgressTrack.setAttribute('aria-valuenow', String(Math.round(pct)));
+    renderOsdFocus();
   }
 
-  function showOsd(timeoutMs) {
+  function showOsd(timeoutMs, interactive) {
     if (state.guideOpen || state.modalOpen) return;
+    if (interactive) {
+      if (!state.osdInteractive) {
+        state.osdFocusZone = 'buttons';
+        state.osdBtnIdx = state.playbackMode === 'archive' ? 3 : 0;
+      }
+      state.osdInteractive = true;
+    } else if (!state.osdVisible) {
+      state.osdInteractive = false;
+    }
     state.osdVisible = true;
     updateOsdContent();
     if (dom.osdBar) dom.osdBar.classList.remove('is-hidden');
     if (state.osdTimer) clearTimeout(state.osdTimer);
+    var waitMs = timeoutMs || (state.osdInteractive ? 8000 : 4200);
     state.osdTimer = setTimeout(function () {
       if (state.pendingScrubOffsetSec === null) hideOsd();
-    }, timeoutMs || 4200);
+    }, waitMs);
   }
 
   function hideOsd() {
     state.osdVisible = false;
+    state.osdInteractive = false;
+    state.pendingScrubOffsetSec = null;
     if (state.osdTimer) {
       clearTimeout(state.osdTimer);
       state.osdTimer = null;
@@ -1328,27 +1410,89 @@
     tuneLiveChannel(list[nextIdx], false);
   }
 
+  function seekCurrentShowToOffset(targetOffsetSec) {
+    var info = getActiveOsdProgramInfo();
+    if (!info) return;
+    if (info.isLiveProg && targetOffsetSec >= info.maxSeek - 8) {
+      state.pendingScrubOffsetSec = null;
+      if (state.playbackMode !== 'live') {
+        returnToLive();
+      } else {
+        showOsd(6000, true);
+      }
+      return;
+    }
+    var clamped = Math.max(0, Math.min(info.maxSeek, Math.round(targetOffsetSec)));
+    state.pendingScrubOffsetSec = null;
+    if (
+      state.playbackMode === 'archive' &&
+      state.activeArchiveProgram &&
+      state.activeArchiveProgram.s === info.prog.s
+    ) {
+      state.archivePosSec = clamped;
+      player.seekArchiveToOffset(clamped);
+      showOsd(6500, true);
+    } else {
+      startArchivePlayback(info.ch, info.prog, clamped, true);
+    }
+  }
+
+  function seekCurrentShowBy(deltaSec) {
+    var info = getActiveOsdProgramInfo();
+    if (!info) return;
+    seekCurrentShowToOffset(info.curOffset + deltaSec);
+  }
+
+  function commitPendingScrub() {
+    if (state.scrubTimer) {
+      clearTimeout(state.scrubTimer);
+      state.scrubTimer = null;
+    }
+    var commitOffset = state.pendingScrubOffsetSec;
+    state.pendingScrubOffsetSec = null;
+    state.scrubTapCount = 0;
+    if (commitOffset !== null) {
+      seekCurrentShowToOffset(commitOffset);
+    }
+  }
+
   function scrubArchiveBy(deltaDirection) {
-    if (state.playbackMode !== 'archive' || !state.activeArchiveProgram) return;
+    var info = getActiveOsdProgramInfo();
+    if (!info) return;
     state.scrubTapCount++;
     var stepSec = state.scrubTapCount > 4 ? 90 : 30;
-    var base = state.pendingScrubOffsetSec !== null ? state.pendingScrubOffsetSec : player.getCurrentArchiveOffsetSec();
-    var dur = Math.max(60, state.activeArchiveProgram.e - state.activeArchiveProgram.s);
-    var nextOffset = Math.max(0, Math.min(dur - 10, base + deltaDirection * stepSec));
+    var nextOffset = Math.max(0, Math.min(info.maxSeek, info.curOffset + deltaDirection * stepSec));
 
     state.pendingScrubOffsetSec = nextOffset;
-    showOsd(5000);
+    showOsd(6500, true);
 
     if (state.scrubTimer) clearTimeout(state.scrubTimer);
-    state.scrubTimer = setTimeout(function () {
-      var commitOffset = state.pendingScrubOffsetSec;
-      state.pendingScrubOffsetSec = null;
-      state.scrubTapCount = 0;
-      if (commitOffset !== null) {
-        state.archivePosSec = commitOffset;
-        player.seekArchiveToOffset(commitOffset);
-      }
-    }, 450);
+    state.scrubTimer = setTimeout(commitPendingScrub, 500);
+  }
+
+  function executeOsdAction(act) {
+    var info = getActiveOsdProgramInfo();
+    if (act === 'restart') {
+      if (info) startArchivePlayback(info.ch, info.prog, 0, true);
+    } else if (act === 'rew5m') {
+      seekCurrentShowBy(-300);
+    } else if (act === 'rew30s') {
+      seekCurrentShowBy(-30);
+    } else if (act === 'playpause') {
+      var paused = player.togglePause();
+      showToast(paused ? t('toastPaused') : t('toastPlaying'), 1400);
+      showOsd(6500, true);
+    } else if (act === 'ff30s') {
+      seekCurrentShowBy(30);
+    } else if (act === 'ff5m') {
+      seekCurrentShowBy(300);
+    } else if (act === 'golive') {
+      returnToLive();
+    } else if (act === 'guide') {
+      hideOsd();
+      setGuideOpen(true);
+      setActivePane('channels');
+    }
   }
 
   function toggleFavoriteOnHighlighted() {
@@ -1450,6 +1594,11 @@
     if (dom.btnModalDemo) dom.btnModalDemo.textContent = t('btnLoadDemo');
     if (dom.btnModalCancel) dom.btnModalCancel.textContent = t('btnCloseEsc');
     if (dom.btnModalSave) dom.btnModalSave.textContent = t('btnSaveReload');
+
+    if (dom.osdBtnRestart) dom.osdBtnRestart.textContent = t('osdBtnRestart');
+    if (dom.osdBtnPlaypause) dom.osdBtnPlaypause.textContent = t('osdBtnPause');
+    if (dom.osdBtnGolive) dom.osdBtnGolive.textContent = t('osdBtnLive');
+    if (dom.osdBtnGuide) dom.osdBtnGuide.textContent = t('osdBtnGuide');
 
     renderModalCycleButtons();
     if (state.allChannels.length) {
@@ -1884,22 +2033,85 @@
         return;
       }
 
-      if (state.playbackMode === 'archive') {
-        if (isLeft || isRewind) {
+      if (isRewind || isFastForward) {
+        e.preventDefault();
+        state.osdFocusZone = 'track';
+        scrubArchiveBy(isRewind ? -1 : 1);
+        return;
+      }
+
+      // Interactive OSD Player Controls (Progress Scrubber + Transport Buttons)
+      if (state.osdVisible && state.osdInteractive) {
+        if (isBack) {
           e.preventDefault();
-          scrubArchiveBy(-1);
+          hideOsd();
           return;
         }
-        if (isRight || isFastForward) {
+        if (isChUp || isChDown) {
           e.preventDefault();
-          scrubArchiveBy(1);
+          zapChannel(isChUp ? -1 : 1);
+          return;
+        }
+        if (isUp) {
+          e.preventDefault();
+          if (state.osdFocusZone === 'buttons') {
+            state.osdFocusZone = 'track';
+            showOsd(8000, true);
+          } else {
+            zapChannel(-1);
+          }
+          return;
+        }
+        if (isDown) {
+          e.preventDefault();
+          if (state.osdFocusZone === 'track') {
+            state.osdFocusZone = 'buttons';
+            showOsd(8000, true);
+          } else {
+            zapChannel(1);
+          }
+          return;
+        }
+        if (isLeft || isRight) {
+          e.preventDefault();
+          var dir = isLeft ? -1 : 1;
+          if (state.osdFocusZone === 'track') {
+            scrubArchiveBy(dir);
+          } else {
+            state.osdBtnIdx = (state.osdBtnIdx + dir + OSD_ACTIONS.length) % OSD_ACTIONS.length;
+            showOsd(8000, true);
+          }
           return;
         }
         if (isEnter) {
           e.preventDefault();
-          var pState = player.togglePause();
-          showToast(pState ? t('toastArchPaused') : t('toastArchPlaying'), 1400);
-          showOsd(4500);
+          if (state.pendingScrubOffsetSec !== null) {
+            commitPendingScrub();
+          } else if (state.osdFocusZone === 'track') {
+            executeOsdAction('playpause');
+          } else {
+            executeOsdAction(OSD_ACTIONS[state.osdBtnIdx] || 'restart');
+          }
+          return;
+        }
+      }
+
+      if (state.playbackMode === 'archive') {
+        if (isLeft) {
+          e.preventDefault();
+          state.osdFocusZone = 'track';
+          scrubArchiveBy(-1);
+          return;
+        }
+        if (isRight) {
+          e.preventDefault();
+          state.osdFocusZone = 'track';
+          scrubArchiveBy(1);
+          return;
+        }
+        if (isEnter || isInfo) {
+          e.preventDefault();
+          showOsd(8000, true);
           return;
         }
         if (isUp || isDown || isChUp || isChDown || isGreenCatchup) {
@@ -1920,7 +2132,7 @@
       }
 
       // Live TV Fullscreen Steering:
-      // OK = Open Guide (1 press!) | Up/Down = Zap Channel | Left = 3-Day Replay | Right = Info OSD | Back = Hide OSD / Exit
+      // OK = Open Guide (1 press!) | Up/Down = Zap Channel | Left = 3-Day Replay | Right = Interactive OSD Player Bar | Back = Hide OSD / Exit
       if (isUp || isChUp) {
         e.preventDefault();
         zapChannel(-1);
@@ -1942,8 +2154,7 @@
       }
       if (isRight || isInfo) {
         e.preventDefault();
-        if (state.osdVisible) hideOsd();
-        else showOsd(5000);
+        showOsd(8000, true);
         return;
       }
       if (isEnter) {
@@ -2237,7 +2448,14 @@
     dom.osdClock = $('osd-clock');
     dom.osdTimeStart = $('osd-time-start');
     dom.osdTimeEnd = $('osd-time-end');
+    dom.osdProgressTrack = $('osd-progress-track');
     dom.osdProgressFill = $('osd-progress-fill');
+    dom.osdProgressThumb = $('osd-progress-thumb');
+    dom.osdActionsRow = $('osd-actions-row');
+    dom.osdBtnRestart = $('osd-btn-restart');
+    dom.osdBtnPlaypause = $('osd-btn-playpause');
+    dom.osdBtnGolive = $('osd-btn-golive');
+    dom.osdBtnGuide = $('osd-btn-guide');
     dom.osdNextInfo = $('osd-next-info');
     dom.osdControlsHint = $('osd-controls-hint');
 
@@ -2354,9 +2572,40 @@
 
     $('video-stage').addEventListener('click', function () {
       if (!state.guideOpen && !state.modalOpen) {
-        setGuideOpen(true);
+        if (state.osdVisible) {
+          hideOsd();
+        } else {
+          setGuideOpen(true);
+        }
       }
     });
+
+    if (dom.osdActionsRow) {
+      dom.osdActionsRow.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var btn = e.target.closest('[data-osd-act]');
+        if (!btn) return;
+        var act = btn.getAttribute('data-osd-act');
+        var idx = OSD_ACTIONS.indexOf(act);
+        if (idx !== -1) state.osdBtnIdx = idx;
+        state.osdFocusZone = 'buttons';
+        executeOsdAction(act);
+      });
+    }
+
+    if (dom.osdProgressTrack) {
+      dom.osdProgressTrack.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var info = getActiveOsdProgramInfo();
+        if (!info) return;
+        var rect = dom.osdProgressTrack.getBoundingClientRect();
+        if (!rect.width) return;
+        var ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        var targetSec = Math.round(ratio * info.dur);
+        state.osdFocusZone = 'track';
+        seekCurrentShowToOffset(targetSec);
+      });
+    }
 
     dom.btnLiveNow.addEventListener('click', returnToLive);
     dom.btnMuteToggle.addEventListener('click', function () {

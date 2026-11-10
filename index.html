@@ -219,10 +219,22 @@
 
     <div class="osd-progress-wrap">
       <span id="osd-time-start" class="osd-time">--:--</span>
-      <div class="osd-progress-track">
+      <div id="osd-progress-track" class="osd-progress-track" role="slider" aria-label="Show progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div id="osd-progress-fill" class="osd-progress-fill" style="width: 0%"></div>
+        <div id="osd-progress-thumb" class="osd-progress-thumb" style="left: 0%"></div>
       </div>
       <span id="osd-time-end" class="osd-time">--:--</span>
+    </div>
+
+    <div id="osd-actions-row" class="osd-actions-row" role="toolbar" aria-label="Playback controls">
+      <button id="osd-btn-restart" type="button" class="osd-btn" data-osd-act="restart">⏮ From Start</button>
+      <button id="osd-btn-rew5m" type="button" class="osd-btn" data-osd-act="rew5m">⏪ -5m</button>
+      <button id="osd-btn-rew30s" type="button" class="osd-btn" data-osd-act="rew30s">◀ -30s</button>
+      <button id="osd-btn-playpause" type="button" class="osd-btn" data-osd-act="playpause">⏯ Pause / Play</button>
+      <button id="osd-btn-ff30s" type="button" class="osd-btn" data-osd-act="ff30s">+30s ▶</button>
+      <button id="osd-btn-ff5m" type="button" class="osd-btn" data-osd-act="ff5m">+5m ⏩</button>
+      <button id="osd-btn-golive" type="button" class="osd-btn osd-btn--live" data-osd-act="golive">● Live</button>
+      <button id="osd-btn-guide" type="button" class="osd-btn" data-osd-act="guide">☰ Guide</button>
     </div>
 
     <div class="osd-bottom">
