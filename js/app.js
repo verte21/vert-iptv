@@ -1472,7 +1472,9 @@
     state.settings = NS.Storage.saveSettings({ lang: nextLang });
     state.modalLang = nextLang;
     applyLanguage();
-    showToast(t('toastLangChanged'), 1800);
+    if (!state.guideOpen && !state.modalOpen) {
+      showToast(t('toastLangChanged'), 1600);
+    }
   }
 
   // Modal Cycle Buttons Rendering
@@ -2132,7 +2134,6 @@
         if (state.selectedDayOffset > 0) {
           state.selectedDayOffset--;
           refreshProgramsForHighlightedChannel(false);
-          showToast('Day: ' + state.dayTabs[state.selectedDayOffset].label, 1200);
         } else {
           setActivePane('channels');
         }
@@ -2141,7 +2142,6 @@
         if (state.selectedDayOffset < state.dayTabs.length - 1) {
           state.selectedDayOffset++;
           refreshProgramsForHighlightedChannel(false);
-          showToast('Day: ' + state.dayTabs[state.selectedDayOffset].label, 1200);
         }
       } else if (isEnter) {
         e.preventDefault();
