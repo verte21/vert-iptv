@@ -4,7 +4,7 @@
     <content src="index.html"/>
     <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
     <icon src="icon.png"/>
-    <name>vertIPTV</name>
+    <name>VT_IPTV</name>
     <description>Fast &amp; Reliable M3U + 3-Day EPG Catchup IPTV Player for Samsung Tizen TV (2017+)</description>
     <access origin="*" subdomains="true"/>
     <tizen:allow-navigation>*</tizen:allow-navigation>

@@ -7,9 +7,9 @@
     "url": "https://github.com/verte21/vert-iptv.git"
   },
   "type": "module",
-  "description": "vertIPTV — Fast M3U + 3-Day EPG Catchup IPTV Player for Samsung Tizen Smart TVs (2015–2026)",
+  "description": "VT_IPTV — Fast M3U + 3-Day EPG Catchup IPTV Player for Samsung Tizen Smart TVs (2015–2026)",
   "packageType": "app",
-  "appName": "vertIPTV",
+  "appName": "VT_IPTV",
   "appPath": "index.html",
   "keys": [
     "MediaPlay",

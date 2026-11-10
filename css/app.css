@@ -122,21 +122,36 @@
   align-items: center;
 }
 
-.brand-dot {
-  width: 12px;
-  height: 12px;
+.brand-logo {
+  display: -webkit-inline-flex;
+  display: inline-flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
   margin-right: 10px;
-  border-radius: 50%;
-  background: #22d3ee;
-  box-shadow: 0 0 10px #22d3ee;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0f1d32 0%, #091322 100%);
+  border: 1.5px solid #22d3ee;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.35);
+  color: #22d3ee;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
 .brand-title {
   margin-right: 10px;
   font-size: 23px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.01em;
   color: #f8fafc;
+}
+
+.brand-accent {
+  color: #22d3ee;
 }
 
 .playlist-badge {
