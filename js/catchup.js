@@ -216,8 +216,8 @@
   }
 
   function getChannelCatchupDays(channel, settings) {
-    if (channel && channel.catchupDays > 0) return channel.catchupDays;
-    return (settings && settings.catchupDays) || 3;
+    if (channel && channel.catchupDays > 0) return Math.min(3, channel.catchupDays);
+    return Math.min(3, (settings && settings.catchupDays) || 3);
   }
 
   NS.Catchup = {

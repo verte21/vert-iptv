@@ -41,7 +41,7 @@
         merged[k] = parsed[k] !== undefined ? parsed[k] : DEFAULT_SETTINGS[k];
       }
     }
-    merged.catchupDays = Math.max(1, Math.min(14, Number(merged.catchupDays) || 3));
+    merged.catchupDays = Math.max(1, Math.min(3, Number(merged.catchupDays) || 3));
     merged.epgOffsetMin = Number(merged.epgOffsetMin) || 0;
     if (merged.lang !== 'en' && merged.lang !== 'de' && merged.lang !== 'pl') {
       merged.lang = 'en';

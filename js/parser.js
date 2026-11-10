@@ -230,9 +230,9 @@
 
     function parseXMLTV(xmlText, channels, catchupDays, epgOffsetMin) {
       var nowSec = Math.floor(Date.now() / 1000);
-      var days = Math.max(1, Number(catchupDays) || 3);
+      var days = Math.min(3, Math.max(1, Number(catchupDays) || 3));
       var minEndSec = nowSec - Math.round((days + 0.5) * 86400);
-      var maxStartSec = nowSec + 36 * 3600;
+      var maxStartSec = nowSec + 86400;
       var offsetSec = (Number(epgOffsetMin) || 0) * 60;
 
       // Map XMLTV channel IDs -> our playlist channel bucket keys (tvgId or normName)

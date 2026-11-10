@@ -374,8 +374,10 @@ https://arch.example.com/ch/custom.ch/live.m3u8
 
   console.log('9. Testing Multi-Language UI dictionaries (EN / DE / PL) & persistence...');
   {
-    const savedPl = Storage.saveSettings({ lang: 'pl' });
+    const savedPl = Storage.saveSettings({ lang: 'pl', catchupDays: 7 });
     assert.equal(savedPl.lang, 'pl');
+    assert.equal(savedPl.catchupDays, 3, 'Storage must cap catchupDays at 3');
+    assert.equal(Catchup.getChannelCatchupDays(parsed.channels[1], savedPl), 3, 'getChannelCatchupDays must cap at 3 days back');
     const savedDe = Storage.saveSettings({ lang: 'de' });
     assert.equal(savedDe.lang, 'de');
     const fallbackInvalid = Storage.saveSettings({ lang: 'invalid_code' });

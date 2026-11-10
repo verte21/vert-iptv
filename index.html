@@ -112,8 +112,24 @@
         <button id="btn-live-now" class="top-control btn-pill btn-live is-hidden" type="button" tabindex="-1">
           ● Return to Live
         </button>
-        <button id="btn-mute-toggle" class="top-control btn-pill" type="button" tabindex="-1" title="Mute / Unmute">
-          🔊 Sound On
+        <button
+          id="btn-mute-toggle"
+          class="top-control btn-pill btn-icon"
+          type="button"
+          tabindex="-1"
+          aria-label="Sound On"
+          aria-pressed="false"
+        >
+          <svg class="icon-svg icon-vol-on" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <svg class="icon-svg icon-vol-muted" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon>
+            <line x1="22" y1="9" x2="16" y2="15"></line>
+            <line x1="16" y1="9" x2="22" y2="15"></line>
+          </svg>
         </button>
         <button id="btn-fav-toggle" class="top-control btn-pill" type="button" tabindex="-1" title="Toggle Favorite">
           ★ Favorite
@@ -261,13 +277,6 @@
             <span id="lbl-cycle-mode" class="field-caption">Catchup URL Protocol (OK to cycle)</span>
             <button id="btn-cycle-mode" class="modal-control btn-cycle" type="button" tabindex="-1">
               Auto-Detect
-            </button>
-          </div>
-
-          <div class="field-col">
-            <span id="lbl-cycle-days" class="field-caption">Archive Window (OK to cycle)</span>
-            <button id="btn-cycle-days" class="modal-control btn-cycle" type="button" tabindex="-1">
-              3 Days Back
             </button>
           </div>
 

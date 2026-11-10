@@ -36,7 +36,6 @@
     { value: 'flussonic', label: 'Flussonic (index-UTC-DUR)' },
     { value: 'append', label: 'Append catchup-source' }
   ];
-  var CATCHUP_DAYS_OPTS = [1, 3, 5, 7];
   var EPG_OFFSET_OPTS = [-120, -60, 0, 60, 120];
   var LANG_OPTS = [
     { value: 'en', shortLabel: '🌐 EN', label: 'English' },
@@ -836,15 +835,16 @@
   }
 
   function buildDayTabsForChannel(channel) {
-    var daysBack = NS.Catchup.getChannelCatchupDays(channel, state.settings);
+    var daysBack = Math.min(3, NS.Catchup.getChannelCatchupDays(channel, state.settings));
     var now = new Date();
+    var nowSec = Math.floor(now.getTime() / 1000);
     var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     var todayStartSec = Math.floor(todayMidnight.getTime() / 1000);
 
     var tabs = [];
     for (var d = 0; d <= daysBack; d++) {
       var startSec = todayStartSec - d * 86400;
-      var endSec = startSec + 86400;
+      var endSec = d === 0 ? Math.max(startSec + 86400, nowSec + 86400) : startSec + 86400;
       var label = d === 0 ? t('today') : d === 1 ? t('yesterday') : formatShortDay(startSec);
       tabs.push({
         offset: d,
@@ -1413,13 +1413,11 @@
 
   function updateMuteButtonText() {
     if (!dom.btnMuteToggle) return;
-    if (state.isMuted) {
-      dom.btnMuteToggle.textContent = state.isAutoplayBlocked ? t('clickForSound') : t('muted');
-      dom.btnMuteToggle.classList.add('btn-live');
-    } else {
-      dom.btnMuteToggle.textContent = t('soundOn');
-      dom.btnMuteToggle.classList.remove('btn-live');
-    }
+    var isMuted = !!state.isMuted;
+    dom.btnMuteToggle.classList.toggle('is-muted', isMuted);
+    dom.btnMuteToggle.classList.toggle('btn-live', isMuted);
+    dom.btnMuteToggle.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
+    dom.btnMuteToggle.setAttribute('aria-label', isMuted ? t('muted') : t('soundOn'));
   }
 
   function applyLanguage() {
@@ -1436,9 +1434,7 @@
     if (dom.btnLangToggle) dom.btnLangToggle.textContent = langOpt.shortLabel;
     if (dom.btnOpenSettings) dom.btnOpenSettings.textContent = t('settingsBtn');
     if (dom.groupsHeaderTitle) dom.groupsHeaderTitle.textContent = t('categoriesTitle');
-    var cDays = (state.settings && state.settings.catchupDays) || 3;
-    var badgeTpl = cDays === 1 ? t('dayBackBadge') : t('daysBackBadge');
-    if (dom.programsCatchupHint) dom.programsCatchupHint.textContent = badgeTpl.replace('{d}', String(cDays));
+    if (dom.programsCatchupHint) dom.programsCatchupHint.textContent = t('daysBackBadge').replace('{d}', '3');
     if (dom.guideFooter) dom.guideFooter.innerHTML = t('footerHtml');
 
     if (dom.settingsTitle) dom.settingsTitle.textContent = t('modalTitle');
@@ -1446,7 +1442,6 @@
     if (dom.lblM3u) dom.lblM3u.innerHTML = t('lblM3uHtml');
     if (dom.lblEpg) dom.lblEpg.innerHTML = t('lblEpgHtml');
     if (dom.lblCycleMode) dom.lblCycleMode.textContent = t('lblCycleMode');
-    if (dom.lblCycleDays) dom.lblCycleDays.textContent = t('lblCycleDays');
     if (dom.lblCycleOffset) dom.lblCycleOffset.textContent = t('lblCycleOffset');
     if (dom.lblCycleLang) dom.lblCycleLang.textContent = t('lblCycleLang');
     if (dom.usbHelpText) dom.usbHelpText.innerHTML = t('usbHelpHtml');
@@ -1487,8 +1482,6 @@
       if (CATCHUP_MODES[i].value === state.modalMode) modeObj = CATCHUP_MODES[i];
     }
     if (dom.btnCycleMode) dom.btnCycleMode.textContent = '▸ ' + modeObj.label;
-    var dayTpl = state.modalDays === 1 ? t('dayBackBadge') : t('daysBackBadge');
-    if (dom.btnCycleDays) dom.btnCycleDays.textContent = '▸ ' + dayTpl.replace('↺ ', '').replace('{d}', String(state.modalDays));
     var offHr = state.modalOffsetMin / 60;
     var offLabel = offHr === 0 ? t('autoTz') : (offHr > 0 ? '+' + offHr + 'h' : offHr + 'h');
     if (dom.btnCycleOffset) dom.btnCycleOffset.textContent = '▸ ' + offLabel;
@@ -1504,7 +1497,6 @@
     dom.inpM3u.value = state.settings.m3uUrl || '';
     dom.inpEpg.value = state.settings.epgUrl || '';
     state.modalMode = state.settings.catchupMode || 'auto';
-    state.modalDays = Number(state.settings.catchupDays) || 3;
     state.modalOffsetMin = Number(state.settings.epgOffsetMin) || 0;
     state.modalLang = getLang();
     renderModalCycleButtons();
@@ -2256,14 +2248,12 @@
     dom.lblM3u = $('lbl-m3u');
     dom.lblEpg = $('lbl-epg');
     dom.lblCycleMode = $('lbl-cycle-mode');
-    dom.lblCycleDays = $('lbl-cycle-days');
     dom.lblCycleOffset = $('lbl-cycle-offset');
     dom.lblCycleLang = $('lbl-cycle-lang');
     dom.usbHelpText = $('usb-help-text');
     dom.inpM3u = $('inp-m3u');
     dom.inpEpg = $('inp-epg');
     dom.btnCycleMode = $('btn-cycle-mode');
-    dom.btnCycleDays = $('btn-cycle-days');
     dom.btnCycleOffset = $('btn-cycle-offset');
     dom.btnCycleLang = $('btn-cycle-lang');
     dom.btnModalUsb = $('btn-modal-usb');
@@ -2392,12 +2382,6 @@
       renderModalCycleButtons();
     });
 
-    dom.btnCycleDays.addEventListener('click', function () {
-      var idx = CATCHUP_DAYS_OPTS.indexOf(state.modalDays);
-      state.modalDays = CATCHUP_DAYS_OPTS[(idx + 1) % CATCHUP_DAYS_OPTS.length];
-      renderModalCycleButtons();
-    });
-
     dom.btnCycleOffset.addEventListener('click', function () {
       var idx = EPG_OFFSET_OPTS.indexOf(state.modalOffsetMin);
       state.modalOffsetMin = EPG_OFFSET_OPTS[(idx + 1) % EPG_OFFSET_OPTS.length];
@@ -2452,7 +2436,7 @@
         m3uUrl: dom.inpM3u.value.trim(),
         epgUrl: dom.inpEpg.value.trim(),
         catchupMode: state.modalMode,
-        catchupDays: state.modalDays,
+        catchupDays: 3,
         epgOffsetMin: state.modalOffsetMin,
         lang: state.modalLang || getLang()
       };
