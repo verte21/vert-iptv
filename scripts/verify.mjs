@@ -159,6 +159,21 @@ https://arch.example.com/ch/custom.ch/live.m3u8
   const customUrls = Catchup.buildCatchupCandidates(parsed.channels[2], start, end, { catchupMode: 'auto' });
   assert.equal(customUrls[0], `https://arch.example.com/ch/custom.ch/play.m3u8?s=${start}&d=60`);
 
+  // Verify TiviMate-compatible per-channel timeshift availability (0d, 1d, 3d, 7d)
+  const testNowSec = 1794350000;
+  const chZero = { catchupDays: 0 };
+  const chThree = { catchupDays: 3 };
+  const chSeven = { catchupDays: 7 };
+  assert.equal(Catchup.getChannelCatchupDays(chZero, { catchupDays: 3 }), 0);
+  assert.equal(Catchup.getChannelCatchupDays(chThree, { catchupDays: 3 }), 3);
+  assert.equal(Catchup.getChannelCatchupDays(chSeven, { catchupDays: 3 }), 3);
+  assert.equal(Catchup.getChannelRawCatchupDays(chSeven, { catchupDays: 3 }), 7);
+  // 80 hours ago (>72h, <168h): unavailable on 0d and 3d channels, available on 7d channel
+  const prog80hAgo = { s: testNowSec - 80 * 3600, e: testNowSec - 79 * 3600 };
+  assert.equal(Catchup.isProgramCatchupAvailable(chZero, prog80hAgo, testNowSec, { catchupDays: 3 }), false);
+  assert.equal(Catchup.isProgramCatchupAvailable(chThree, prog80hAgo, testNowSec, { catchupDays: 3 }), false);
+  assert.equal(Catchup.isProgramCatchupAvailable(chSeven, prog80hAgo, testNowSec, { catchupDays: 3 }), true);
+
   // Demo bundle sanity
   const demo = DemoData.buildDemoBundle();
   assert.equal(demo.channels.length, 5);

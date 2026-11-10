@@ -76,7 +76,7 @@
       pillUpcoming: 'Upcoming',
       footerHtml:
         '<span class="footer-item"><kbd>▲▼</kbd> Navigate</span>' +
-        '<span class="footer-item"><kbd>◀▶</kbd> Categories / Channels / 3-Day Replay</span>' +
+        '<span class="footer-item"><kbd>◀▶</kbd> Categories / Channels / EPG</span>' +
         '<span class="footer-item"><kbd>OK</kbd> Watch Live / Play Replay</span>' +
         '<span class="footer-item"><kbd>▲</kbd> Top Bar (Fav / USB / Lang / Settings)</span>' +
         '<span class="footer-item"><kbd>BACK / ESC</kbd> Fullscreen TV</span>',
@@ -84,19 +84,19 @@
       osdLiveBadge: '● LIVE',
       osdUpNext: 'Up Next',
       osdLiveBroadcast: 'Live Broadcast',
-      osdCatchupFallback: '3-Day Catchup Playback',
-      osdLiveHintText: 'Press ◀ Left for 3-Day Replay · OK for Channel Guide',
+      osdCatchupFallback: 'Archive Playback',
+      osdLiveHintText: 'Press ◀ Left for EPG · OK for Channel Guide',
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Scrub ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live TV',
       osdLiveControlsHtml:
-        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> 3-Day Replay &nbsp;·&nbsp; <kbd>▶</kbd> Player Controls',
+        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> EPG &nbsp;·&nbsp; <kbd>▶</kbd> Player Controls',
       osdInteractiveControlsHtml:
         '<kbd>◀▶</kbd> Select / Scrub &nbsp;·&nbsp; <kbd>▲▼</kbd> Bar / Buttons &nbsp;·&nbsp; <kbd>OK</kbd> Confirm &nbsp;·&nbsp; <kbd>BACK</kbd> Close',
       osdBtnRestart: '⏮ From Start',
       osdBtnPause: '⏯ Pause / Play',
       osdBtnLive: '● Live',
       osdBtnGuide: '☰ Guide',
-      modalTitle: 'Playlist & 3-Day EPG Setup',
+      modalTitle: 'Playlist & EPG Setup',
       modalSubtitleHtml:
         'Navigate with <strong>Arrows</strong>, press <strong>OK</strong> on a text box to edit (and <strong>OK / Esc</strong> when done), or import directly from a USB pendrive.',
       lblM3uHtml: 'M3U / M3U8 Playlist URL <small>(press OK to edit)</small>',
@@ -127,7 +127,9 @@
       toastArchPlaying: '▶ Archive Playing',
       toastBackExit: 'Press BACK again to exit vertIPTV',
       toastSavedSettings: '✓ Saved playlist & EPG settings',
-      toastLangChanged: '🌐 Language: English'
+      toastLangChanged: '🌐 Language: English',
+      noArchiveBadge: '● Live only',
+      toastNoArchive: 'No archive recording available for this program'
     },
     de: {
       daysShort: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
@@ -161,7 +163,7 @@
       pillUpcoming: 'Geplant',
       footerHtml:
         '<span class="footer-item"><kbd>▲▼</kbd> Navigieren</span>' +
-        '<span class="footer-item"><kbd>◀▶</kbd> Kategorien / Sender / 3-Tage-Archiv</span>' +
+        '<span class="footer-item"><kbd>◀▶</kbd> Kategorien / Sender / EPG</span>' +
         '<span class="footer-item"><kbd>OK</kbd> Live / Replay starten</span>' +
         '<span class="footer-item"><kbd>▲</kbd> Leiste (Fav / USB / Sprache / Setup)</span>' +
         '<span class="footer-item"><kbd>BACK / ESC</kbd> Vollbild-TV</span>',
@@ -169,19 +171,19 @@
       osdLiveBadge: '● LIVE',
       osdUpNext: 'Danach',
       osdLiveBroadcast: 'Live-Übertragung',
-      osdCatchupFallback: '3-Tage-Archiv Wiedergabe',
-      osdLiveHintText: '◀ Links für 3-Tage-Replay · OK für Senderliste',
+      osdCatchupFallback: 'Archiv Wiedergabe',
+      osdLiveHintText: '◀ Links für EPG · OK für Senderliste',
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Spulen ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live-TV',
       osdLiveControlsHtml:
-        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Sender &nbsp;·&nbsp; <kbd>◀</kbd> 3-Tage-Replay &nbsp;·&nbsp; <kbd>▶</kbd> Steuerung',
+        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Sender &nbsp;·&nbsp; <kbd>◀</kbd> EPG &nbsp;·&nbsp; <kbd>▶</kbd> Steuerung',
       osdInteractiveControlsHtml:
         '<kbd>◀▶</kbd> Auswahl / Spulen &nbsp;·&nbsp; <kbd>▲▼</kbd> Leiste / Tasten &nbsp;·&nbsp; <kbd>OK</kbd> OK &nbsp;·&nbsp; <kbd>BACK</kbd> Schließen',
       osdBtnRestart: '⏮ Vom Anfang',
       osdBtnPause: '⏯ Pause / Play',
       osdBtnLive: '● Live',
       osdBtnGuide: '☰ Guide',
-      modalTitle: 'Playlist & 3-Tage-EPG Einstellungen',
+      modalTitle: 'Playlist & EPG Einstellungen',
       modalSubtitleHtml:
         'Mit <strong>Pfeiltasten</strong> navigieren, <strong>OK</strong> im Textfeld zum Tippen drücken (und <strong>OK / Esc</strong> zum Beenden) oder direkt vom USB-Stick laden.',
       lblM3uHtml: 'M3U / M3U8 Playlist-URL <small>(OK zum Bearbeiten)</small>',
@@ -212,7 +214,9 @@
       toastArchPlaying: '▶ Archiv läuft',
       toastBackExit: 'Nochmals ZURÜCK drücken zum Beenden',
       toastSavedSettings: '✓ Playlist & EPG gespeichert',
-      toastLangChanged: '🌐 Sprache: Deutsch'
+      toastLangChanged: '🌐 Sprache: Deutsch',
+      noArchiveBadge: '● Nur Live',
+      toastNoArchive: 'Keine Archivaufnahme für diese Sendung verfügbar'
     },
     pl: {
       daysShort: ['Ndz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'],
@@ -246,7 +250,7 @@
       pillUpcoming: 'Wkrótce',
       footerHtml:
         '<span class="footer-item"><kbd>▲▼</kbd> Nawigacja</span>' +
-        '<span class="footer-item"><kbd>◀▶</kbd> Kategorie / Kanały / Archiwum 3 dni</span>' +
+        '<span class="footer-item"><kbd>◀▶</kbd> Kategorie / Kanały / Program TV</span>' +
         '<span class="footer-item"><kbd>OK</kbd> Na żywo / Odtwórz z archiwum</span>' +
         '<span class="footer-item"><kbd>▲</kbd> Pasek górny (Ulub. / USB / Język / Ustaw.)</span>' +
         '<span class="footer-item"><kbd>BACK / ESC</kbd> Pełny ekran</span>',
@@ -254,19 +258,19 @@
       osdLiveBadge: '● NA ŻYWO',
       osdUpNext: 'Następnie',
       osdLiveBroadcast: 'Transmisja na żywo',
-      osdCatchupFallback: 'Odtwarzanie z archiwum (3 dni)',
-      osdLiveHintText: '◀ W lewo: Archiwum 3 dni · OK: Lista kanałów',
+      osdCatchupFallback: 'Odtwarzanie z archiwum',
+      osdLiveHintText: '◀ W lewo: Program TV · OK: Lista kanałów',
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Przewiń ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pauza/Start &nbsp;·&nbsp; <kbd>▲▼</kbd> Przewodnik &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Na żywo',
       osdLiveControlsHtml:
-        '<kbd>OK</kbd> Przewodnik &nbsp;·&nbsp; <kbd>▲▼</kbd> Kanał &nbsp;·&nbsp; <kbd>◀</kbd> Archiwum 3 dni &nbsp;·&nbsp; <kbd>▶</kbd> Sterowanie',
+        '<kbd>OK</kbd> Przewodnik &nbsp;·&nbsp; <kbd>▲▼</kbd> Kanał &nbsp;·&nbsp; <kbd>◀</kbd> Program TV &nbsp;·&nbsp; <kbd>▶</kbd> Sterowanie',
       osdInteractiveControlsHtml:
         '<kbd>◀▶</kbd> Wybór / Przewijanie &nbsp;·&nbsp; <kbd>▲▼</kbd> Pasek / Przyciski &nbsp;·&nbsp; <kbd>OK</kbd> Zatwierdź &nbsp;·&nbsp; <kbd>BACK</kbd> Zamknij',
       osdBtnRestart: '⏮ Od początku',
       osdBtnPause: '⏯ Pauza / Start',
       osdBtnLive: '● Na żywo',
       osdBtnGuide: '☰ Przewodnik',
-      modalTitle: 'Ustawienia listy M3U i 3-dniowego EPG',
+      modalTitle: 'Ustawienia listy M3U i EPG',
       modalSubtitleHtml:
         'Poruszaj się <strong>Strzałkami</strong>, naciśnij <strong>OK</strong> na polu tekstowym aby pisać (oraz <strong>OK / Esc</strong> po zakończeniu) lub wczytaj listę z pendrive USB.',
       lblM3uHtml: 'Adres URL listy M3U / M3U8 <small>(OK aby edytować)</small>',
@@ -297,7 +301,9 @@
       toastArchPlaying: '▶ Odtwarzanie archiwum',
       toastBackExit: 'Naciśnij ponownie BACK aby wyjść z vertIPTV',
       toastSavedSettings: '✓ Zapisano ustawienia listy i EPG',
-      toastLangChanged: '🌐 Język: Polski'
+      toastLangChanged: '🌐 Język: Polski',
+      noArchiveBadge: '● Tylko na żywo',
+      toastNoArchive: 'Brak nagrania w archiwum dla tego programu'
     }
   };
 
@@ -822,9 +828,7 @@
         pct = Math.max(2, Math.min(100, Math.round(((nowSec - sched.now.s) / (sched.now.e - sched.now.s)) * 100)));
       }
 
-      var cDays = NS.Catchup.getChannelCatchupDays(ch, state.settings);
       var favStar = isChannelFav(ch) ? '<span class="ch-fav" aria-label="Favorite">★</span>' : '';
-      var catchupBadge = cDays > 0 ? '<span class="ch-catchup-tag">↺ ' + cDays + 'd</span>' : '';
 
       var logoHtml = ch.logo
         ? '<img class="ch-logo-img" src="' + escapeHtml(ch.logo) + '" alt="" width="48" height="36" loading="lazy" fetchpriority="low" decoding="async" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + escapeHtml(getMonogram(ch.name)) + '\';">'
@@ -838,7 +842,6 @@
         '<div class="ch-title-line">' +
         favStar +
         '<span class="ch-name">' + escapeHtml(ch.name) + '</span>' +
-        catchupBadge +
         '</div>' +
         '<div class="ch-now-prog">' + escapeHtml(nowTitle) + '</div>' +
         (pct > 0 ? '<div class="ch-mini-bar"><div class="ch-mini-bar-fill" style="width:' + pct + '%"></div></div>' : '') +
@@ -856,7 +859,9 @@
   }
 
   function buildDayTabsForChannel(channel) {
-    var daysBack = Math.min(3, NS.Catchup.getChannelCatchupDays(channel, state.settings));
+    var catchupDays = Math.min(3, NS.Catchup.getChannelCatchupDays(channel, state.settings));
+    var hasEpg = getProgramsForChannel(channel).length > 0;
+    var daysBack = hasEpg ? 3 : catchupDays;
     var now = new Date();
     var nowSec = Math.floor(now.getTime() / 1000);
     var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -893,7 +898,7 @@
       }
     }
 
-    if (!matched.length) {
+    if (!matched.length && (dayTab.offset === 0 || NS.Catchup.getChannelCatchupDays(channel, state.settings) >= dayTab.offset)) {
       var limitSec = dayTab.offset === 0 ? Math.min(dayTab.endSec, nowSec + 3600) : dayTab.endSec;
       for (var slotSec = dayTab.startSec; slotSec < limitSec; slotSec += 3600) {
         matched.push({
@@ -920,6 +925,16 @@
 
     if (dom.programsChannelTitle) {
       dom.programsChannelTitle.textContent = ch.num + '. ' + ch.name;
+    }
+    if (dom.programsCatchupHint) {
+      var cDays = NS.Catchup.getChannelCatchupDays(ch, state.settings);
+      if (cDays <= 0) {
+        dom.programsCatchupHint.textContent = t('noArchiveBadge');
+      } else if (cDays === 1) {
+        dom.programsCatchupHint.textContent = t('dayBackBadge').replace('{d}', '1');
+      } else {
+        dom.programsCatchupHint.textContent = t('daysBackBadge').replace('{d}', String(cDays));
+      }
     }
 
     buildDayTabsForChannel(ch);
@@ -1047,13 +1062,15 @@
       for (var k = 0; k < pRows.length; k++) {
         var pk = progs[k];
         var kLive = nowFast >= pk.s && nowFast < pk.e;
+        var kPast = pk.e <= nowFast;
         var kFuture = pk.s > nowFast;
+        var kHasCatchup = kPast && NS.Catchup.isProgramCatchupAvailable(ch, pk, nowFast, state.settings);
         var kFocused = k === effProgFocus;
         var kArch = archiveStart !== -1 && archiveStart === pk.s;
         var kCls = 'prog-item';
         if (k >= 10 && Math.abs(k - state.focusedProgramIdx) > 8) kCls += ' prog-item--deferred';
         if (kLive) kCls += ' is-live';
-        if (kFuture) kCls += ' is-future';
+        if (kFuture || (kPast && !kHasCatchup)) kCls += ' is-future';
         if (kArch) kCls += ' is-playing-archive';
         if (kFocused) kCls += ' is-focused';
         pRows[k].className = kCls;
@@ -1075,22 +1092,23 @@
       var isFuture = p.s > nowSec;
       var isFocused = i === effProgFocus;
       var isPlayingThisArchive = archiveStart !== -1 && archiveStart === p.s;
+      var hasCatchup = isPast && NS.Catchup.isProgramCatchupAvailable(ch, p, nowSec, state.settings);
 
       var cls = 'prog-item';
       if (i >= 10 && Math.abs(i - state.focusedProgramIdx) > 8) cls += ' prog-item--deferred';
       if (isLive) cls += ' is-live';
-      if (isFuture) cls += ' is-future';
+      if (isFuture || (isPast && !hasCatchup)) cls += ' is-future';
       if (isPlayingThisArchive) cls += ' is-playing-archive';
       if (isFocused) cls += ' is-focused';
 
       var pillHtml = '';
       if (isPlayingThisArchive) {
         pillHtml = '<span class="prog-pill prog-pill--replay">' + escapeHtml(t('pillPlaying')) + '</span>';
-      } else if (isPast) {
+      } else if (hasCatchup) {
         pillHtml = '<span class="prog-pill prog-pill--replay">' + escapeHtml(t('pillReplay')) + '</span>';
       } else if (isLive) {
         pillHtml = '<span class="prog-pill prog-pill--live">' + escapeHtml(t('pillLive')) + '</span>';
-      } else {
+      } else if (isFuture) {
         pillHtml = '<span class="prog-pill prog-pill--upcoming">' + escapeHtml(t('pillUpcoming')) + '</span>';
       }
 
@@ -1200,6 +1218,11 @@
         tuneLiveChannel(channel, true);
         showToast(t('toastLiveTv') + program.t);
       }
+      return;
+    }
+
+    if (!NS.Catchup.isProgramCatchupAvailable(channel, program, nowSec, state.settings)) {
+      showToast(t('toastNoArchive'));
       return;
     }
 
@@ -1578,7 +1601,6 @@
     if (dom.btnLangToggle) dom.btnLangToggle.textContent = langOpt.shortLabel;
     if (dom.btnOpenSettings) dom.btnOpenSettings.textContent = t('settingsBtn');
     if (dom.groupsHeaderTitle) dom.groupsHeaderTitle.textContent = t('categoriesTitle');
-    if (dom.programsCatchupHint) dom.programsCatchupHint.textContent = t('daysBackBadge').replace('{d}', '3');
     if (dom.guideFooter) dom.guideFooter.innerHTML = t('footerHtml');
 
     if (dom.settingsTitle) dom.settingsTitle.textContent = t('modalTitle');
@@ -1717,11 +1739,11 @@
 
   function loadAndHydrateEpg(epgUrl, channels) {
     if (!epgUrl) {
-      if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Hourly 3d Replay Ready';
+      if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Replay Ready';
       persistActiveSnapshot('', '');
       return Promise.resolve();
     }
-    if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Syncing 3d EPG...';
+    if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Syncing EPG...';
 
     return NS.Parser.fetchTextSmart(epgUrl, state.settings.useCorsProxy)
       .then(function (xmlText) {
@@ -1742,9 +1764,9 @@
         persistActiveSnapshot('', epgUrl);
       })
       .catch(function (err) {
-        if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'EPG failed (Hourly Replay active)';
+        if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'EPG unavailable';
         persistActiveSnapshot('', epgUrl);
-        showToast('EPG note: ' + (err && err.message ? err.message : 'unavailable') + ' — hourly 3d slots active');
+        showToast('EPG note: ' + (err && err.message ? err.message : 'unavailable') + ' — hourly slots active');
       });
   }
 
@@ -1803,12 +1825,12 @@
           }
           var demo = NS.DemoData.buildDemoBundle();
           applyBundleToState(demo, 'Demo Mode (5 ch)', true);
-          if (dom.epgSyncPill) dom.epgSyncPill.textContent = '3-Day Demo EPG Active';
+          if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Demo EPG Active';
         });
       }
       var demoNow = NS.DemoData.buildDemoBundle();
       applyBundleToState(demoNow, 'Demo Mode (5 ch)', true);
-      if (dom.epgSyncPill) dom.epgSyncPill.textContent = '3-Day Demo EPG Active';
+      if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Demo EPG Active';
       return Promise.resolve();
     }
 
@@ -1938,6 +1960,8 @@
     var isBlueSettings = key === 'ColorF3Blue' || code === 406 || ((key === 's' || key === 'S' || code === 83) && !editingInput);
     var isInfo = key === 'Info' || code === 457 || ((key === 'i' || key === 'I' || code === 73) && !editingInput);
     var isMuteKey = !editingInput && (key === 'm' || key === 'M' || code === 77 || key === 'AudioVolumeMute' || code === 449);
+    var isVolUp = !editingInput && (key === 'AudioVolumeUp' || code === 447 || key === '+' || key === '=');
+    var isVolDown = !editingInput && (key === 'AudioVolumeDown' || code === 448 || key === '-');
     var isAudioTrackKey = !editingInput && (key === 'a' || key === 'A' || code === 65);
 
     // Handle TV-Smart Input toggle (OK unlocks input for typing; OK / Back / Up / Down locks it back!)
@@ -1976,6 +2000,13 @@
       e.preventDefault();
       var nowMuted = player.toggleMute();
       showToast(nowMuted ? t('muted') : t('soundOn'), 1500);
+      return;
+    }
+
+    if (isVolUp || isVolDown) {
+      e.preventDefault();
+      var volPct = player.adjustVolume(isVolUp ? 1 : -1);
+      showToast((volPct === 0 ? '🔇 ' : '🔊 ') + volPct + '%', 1200);
       return;
     }
 
@@ -2222,6 +2253,18 @@
           applyChannelFilter('', true);
           renderGroups();
         }
+      } else if (isChUp) {
+        e.preventDefault();
+        state.focusedGroupIdx = Math.max(0, state.focusedGroupIdx - 6);
+        state.selectedGroupIdx = state.focusedGroupIdx;
+        applyChannelFilter('', true);
+        renderGroups();
+      } else if (isChDown) {
+        e.preventDefault();
+        state.focusedGroupIdx = Math.min(Math.max(0, state.displayGroups.length - 1), state.focusedGroupIdx + 6);
+        state.selectedGroupIdx = state.focusedGroupIdx;
+        applyChannelFilter('', true);
+        renderGroups();
       } else if (isRight || isEnter) {
         e.preventDefault();
         state.selectedGroupIdx = state.focusedGroupIdx;
@@ -2677,7 +2720,7 @@
       state.playingChannelKey = '';
       closeSettingsModal();
       loadConfiguredUrls(true);
-      showToast('Loaded 5-channel Demo with 3-Day Catchup!');
+      showToast('Loaded 5-channel Demo!');
     });
 
     dom.btnModalSave.addEventListener('click', function () {
@@ -2749,6 +2792,14 @@
         }
       },
       onError: function (msg) {
+        if (state.playbackMode === 'archive') {
+          var liveCh = getChannelByKey(state.playingChannelKey) || state.filteredChannels[state.focusedChannelIdx] || state.allChannels[0];
+          if (liveCh) {
+            tuneLiveChannel(liveCh, true);
+            showToast(t('toastNoArchive') + ' — ' + t('toastLiveTv') + liveCh.name, 4200);
+            return;
+          }
+        }
         showToast(msg, 4000);
       },
       onMuteChange: function (m) {
@@ -2779,7 +2830,9 @@
     });
 
     if (global.location && /^https?:/.test(global.location.protocol)) {
-      setInterval(checkCompanionRemoteConfig, 8000);
+      setInterval(function () {
+        if (state.modalOpen) checkCompanionRemoteConfig();
+      }, 8000);
     }
   }
 

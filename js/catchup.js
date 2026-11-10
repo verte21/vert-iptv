@@ -215,14 +215,32 @@
     return candidates;
   }
 
+  function getChannelRawCatchupDays(channel, settings) {
+    if (channel && typeof channel.catchupDays === 'number' && !isNaN(channel.catchupDays)) {
+      return Math.max(0, channel.catchupDays);
+    }
+    return Math.max(0, (settings && settings.catchupDays) || 3);
+  }
+
   function getChannelCatchupDays(channel, settings) {
-    if (channel && channel.catchupDays > 0) return Math.min(3, channel.catchupDays);
-    return Math.min(3, (settings && settings.catchupDays) || 3);
+    return Math.min(3, getChannelRawCatchupDays(channel, settings));
+  }
+
+  function isProgramCatchupAvailable(channel, program, nowSec, settings) {
+    if (!channel || !program) return false;
+    var rawDays = getChannelRawCatchupDays(channel, settings);
+    if (rawDays <= 0) return false;
+    var now = nowSec || Math.floor(Date.now() / 1000);
+    if (program.s > now) return false;
+    var cutoffSec = now - rawDays * 86400;
+    return program.s >= cutoffSec;
   }
 
   NS.Catchup = {
     buildCatchupCandidates: buildCatchupCandidates,
+    getChannelRawCatchupDays: getChannelRawCatchupDays,
     getChannelCatchupDays: getChannelCatchupDays,
+    isProgramCatchupAvailable: isProgramCatchupAvailable,
     formatDatePattern: formatDatePattern
   };
 })(window);
