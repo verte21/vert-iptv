@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vertIPTV — Samsung Tizen TV Simulator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 38% 35%, #131c2e 0%, #070a12 75%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+
+    .sim-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 12px 18px;
+      gap: 10px;
+    }
+
+    /* Top Simulator Control Bar */
+    .sim-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      flex-shrink: 0;
+      contain: layout style paint;
+    }
+
+    .sim-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sim-badge {
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, 0.16);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      color: #22d3ee;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sim-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sim-select, .sim-btn {
+      padding: 6px 11px;
+      border-radius: 7px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: #0b1120;
+      color: #e2e8f0;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .sim-btn:hover, .sim-select:hover {
+      border-color: #22d3ee;
+    }
+
+    .sim-btn.is-on {
+      background: rgba(8, 145, 178, 0.32);
+      border-color: #22d3ee;
+      color: #ffffff;
+    }
+
+    /* Main Workspace: TV Screen + Right Samsung Remote Dock */
+    .sim-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    /* TV Stage */
+    .tv-stage {
+      flex: 1;
+      height: 100%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tv-bezel {
+      position: relative;
+      padding: 10px 10px 16px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #1e2430 0%, #0f131a 100%);
+      border: 1.5px solid #334155;
+      box-shadow:
+        0 30px 70px rgba(0, 0, 0, 0.85),
+        0 0 90px rgba(14, 165, 233, 0.09);
+    }
+
+    .tv-screen-clip {
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      border-radius: 2px;
+    }
+
+    .tv-iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border: 0;
+      transform-origin: 0 0;
+      background: #000;
+    }
+
+    .tv-iframe.remote-only {
+      pointer-events: none;
+    }
+
+    /* Simulated Tizen Standby / Exited Overlay */
+    .tv-standby {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: radial-gradient(circle, #0b1324 0%, #020409 85%);
+      z-index: 10;
+    }
+
+    .tv-standby.is-visible {
+      display: flex;
+    }
+
+    .tv-chin {
+      position: absolute;
+      bottom: 3px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      color: #64748b;
+    }
+
+    .tv-led {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #22d3ee;
+      box-shadow: 0 0 6px #22d3ee;
+    }
+
+    .tv-led.is-off {
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+    }
+
+    .tv-stand-neck {
+      width: 90px;
+      height: 12px;
+      background: linear-gradient(90deg, #0f172a, #334155, #0f172a);
+    }
+
+    .tv-stand-base {
+      width: 240px;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #1e293b, #475569, #1e293b);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+    }
+
+    .telemetry-bar {
+      margin-top: 10px;
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .telemetry-bar strong {
+      color: #22d3ee;
+    }
+
+    /* Right Dock: Authentic Samsung Smart Remote + Virtual USB Stick */
+    .remote-dock {
+      width: 248px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      padding-right: 2px;
+      flex-shrink: 0;
+      contain: layout style paint;
+    }
+
+    .samsung-remote {
+      padding: 16px 16px 18px;
+      border-radius: 30px;
+      background: linear-gradient(165deg, #1f2633 0%, #10151e 100%);
+      border: 1.5px solid #334155;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.08), 0 18px 38px rgba(0,0,0,0.65);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rem-top-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rbtn {
+      border: 1px solid #334155;
+      background: #171e2b;
+      color: #e2e8f0;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.06s ease, background 0.08s ease;
+    }
+
+    .rbtn:active, .rbtn.is-pressed {
+      transform: scale(0.93);
+      background: #0891b2 !important;
+      border-color: #22d3ee !important;
+      color: #fff !important;
+    }
+
+    .rbtn-power {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.55);
+      color: #fca5a5;
+      font-size: 14px;
+    }
+
+    .rbtn-small-pill {
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 11px;
+    }
+
+    /* Circular Samsung One-Remote D-Pad Ring */
+    .dpad-ring {
+      position: relative;
+      width: 158px;
+      height: 158px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #182030 35%, #20293a 100%);
+      border: 2px solid #3b475c;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+    }
+
+    .dpad-dir {
+      position: absolute;
+      width: 48px;
+      height: 40px;
+      border-radius: 10px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 15px;
+    }
+
+    .dpad-dir:hover { color: #f8fafc; }
+    .dpad-up { top: 4px; left: 55px; }
+    .dpad-down { bottom: 4px; left: 55px; }
+    .dpad-left { left: 4px; top: 59px; width: 40px; height: 40px; }
+    .dpad-right { right: 4px; top: 59px; width: 40px; height: 40px; }
+
+    .dpad-ok {
+      position: absolute;
+      top: 45px;
+      left: 45px;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #273247 0%, #171f2e 100%);
+      border: 2px solid #475569;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      color: #f8fafc;
+    }
+
+    .rem-row-3 {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .rbtn-action {
+      height: 36px;
+      border-radius: 18px;
+      font-size: 12px;
+    }
+
+    .rem-rockers {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .rocker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #141a26;
+      border: 1px solid #334155;
+      border-radius: 18px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .rocker .rbtn {
+      width: 100%;
+      height: 28px;
+      border: none;
+      border-radius: 14px;
+      background: transparent;
+    }
+
+    .rocker-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748b;
+      letter-spacing: 0.06em;
+    }
+
+    .color-dots {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .cdot {
+      height: 18px;
+      border-radius: 9px;
+      border: none;
+      cursor: pointer;
+    }
+    .cdot-red { background: #ef4444; }
+    .cdot-green { background: #22c55e; }
+    .cdot-yellow { background: #eab308; }
+    .cdot-blue { background: #3b82f6; }
+
+    .remote-brand {
+      margin-top: 2px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      color: #64748b;
+    }
+
+    /* Virtual USB Pendrive Card */
+    .usb-sim-card {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .usb-sim-title {
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .usb-sim-input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #060a12;
+      color: #f8fafc;
+      font-size: 11.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sim-shell">
+    <header class="sim-header">
+      <div class="sim-title-group">
+        <strong>Samsung Tizen TV Simulator</strong>
+        <span class="sim-badge">vertIPTV</span>
+      </div>
+
+      <div class="sim-controls">
+        <select id="sel-tv-model" class="sim-select" title="Simulated Samsung TV Model">
+          <option value="2017-fhd" selected>2017 Samsung M/Q-Series (Tizen 3.0 · 1920×1080 · keyCode Mode)</option>
+          <option value="2024-fhd">2024 Samsung QLED/OLED (Tizen 8.0 · 1920×1080)</option>
+          <option value="2017-hd">2017 Samsung 32" HD (Tizen 3.0 · 1280×720)</option>
+        </select>
+
+        <button id="btn-mouse-lock" class="sim-btn" type="button" title="Block mouse clicks inside TV so you test strictly with remote keys">
+          🖱 Mouse + Remote
+        </button>
+
+        <button id="btn-cold-reboot" class="sim-btn" type="button" title="Reboot simulated TV app">
+          ↻ Cold Boot TV
+        </button>
+
+        <a href="/" target="_blank" class="sim-btn" style="text-decoration:none;">
+          ↗ Full Browser Tab
+        </a>
+      </div>
+    </header>
+
+    <main class="sim-main">
+      <!-- Scaled 16:9 Samsung TV Screen -->
+      <section class="tv-stage" id="tv-stage-box">
+        <div class="tv-bezel">
+          <div id="tv-screen-clip" class="tv-screen-clip">
+            <iframe id="tv-iframe" class="tv-iframe" src="/?tizenSim=1" title="Simulated Samsung Tizen TV"></iframe>
+            <div id="tv-standby" class="tv-standby">
+              <div style="font-size:18px;font-weight:800;color:#e2e8f0;">Samsung Smart Hub (vertIPTV Exited)</div>
+              <div style="font-size:13px;color:#94a3b8;">Double-BACK exit succeeded (`tizen.application.exit()`).</div>
+              <button id="btn-relaunch-app" class="sim-btn is-on" type="button">▶ Launch vertIPTV</button>
+            </div>
+          </div>
+          <div class="tv-chin">
+            <span id="tv-led" class="tv-led"></span>
+            <span>SAMSUNG TIZEN</span>
+          </div>
+        </div>
+        <div class="tv-stand-neck"></div>
+        <div class="tv-stand-base"></div>
+
+        <div class="telemetry-bar">
+          <span>Viewport: <strong id="tel-res">1920×1080</strong></span>
+          <span>Tizen Keys Registered: <strong id="tel-keys">0</strong></span>
+          <span>Last Remote Signal: <strong id="tel-last-key">Ready (Use Keyboard or Click Remote)</strong></span>
+        </div>
+      </section>
+
+      <!-- Samsung Smart Remote + Virtual USB Pendrive -->
+      <aside class="remote-dock">
+        <div class="samsung-remote" aria-label="Samsung Smart Remote">
+          <div class="rem-top-row">
+            <button class="rbtn rbtn-power" type="button" id="rem-power" title="Reboot / Power TV">⏻</button>
+            <button class="rbtn rbtn-small-pill" type="button" data-kcode="449" data-kname="AudioVolumeMute" title="Mute (M)">🔇 Mute</button>
+            <button class="rbtn rbtn-small-pill" type="button" data-kcode="406" data-kname="ColorF3Blue" title="Settings (S)">⚙ Setup</button>
+          </div>
+
+          <div class="dpad-ring">
+            <button class="rbtn dpad-dir dpad-up" type="button" data-kcode="38" data-kname="ArrowUp" title="Up">▲</button>
+            <button class="rbtn dpad-dir dpad-down" type="button" data-kcode="40" data-kname="ArrowDown" title="Down">▼</button>
+            <button class="rbtn dpad-dir dpad-left" type="button" data-kcode="37" data-kname="ArrowLeft" title="Left">◀</button>
+            <button class="rbtn dpad-dir dpad-right" type="button" data-kcode="39" data-kname="ArrowRight" title="Right">▶</button>
+            <button class="rbtn dpad-ok" type="button" data-kcode="13" data-kname="Enter" title="OK / Enter">OK</button>
+          </div>
+
+          <div class="rem-row-3">
+            <button class="rbtn rbtn-action" type="button" data-kcode="10009" data-kname="Escape" title="Samsung Return / Back (keyCode 10009)">↩ Back</button>
+            <button class="rbtn rbtn-action" type="button" data-kcode="458" data-kname="Guide" title="3-Day Guide">☰ Guide</button>
+            <button class="rbtn rbtn-action" type="button" data-kcode="10252" data-kname="MediaPlayPause" title="Play / Pause">⏯</button>
+          </div>
+
+          <div class="rem-rockers">
+            <div class="rocker">
+              <button class="rbtn" type="button" data-kcode="417" data-kname="MediaFastForward" title="+30s">⏩</button>
+              <span class="rocker-label">SEEK</span>
+              <button class="rbtn" type="button" data-kcode="412" data-kname="MediaRewind" title="-30s">⏪</button>
+            </div>
+            <div class="rocker">
+              <button class="rbtn" type="button" data-kcode="427" data-kname="ChannelUp" title="CH+">▲</button>
+              <span class="rocker-label">CH</span>
+              <button class="rbtn" type="button" data-kcode="428" data-kname="ChannelDown" title="CH-">▼</button>
+            </div>
+          </div>
+
+          <div class="color-dots" title="Tizen Color Buttons (Red=Fav, Green=Catchup, Blue=Settings)">
+            <button class="cdot cdot-red" type="button" data-kcode="403" data-kname="ColorF0Red" title="Red: Favorite"></button>
+            <button class="cdot cdot-green" type="button" data-kcode="404" data-kname="ColorF1Green" title="Green: 3-Day Replay"></button>
+            <button class="cdot cdot-yellow" type="button" data-kcode="405" data-kname="ColorF2Yellow" title="Yellow"></button>
+            <button class="cdot cdot-blue" type="button" data-kcode="406" data-kname="ColorF3Blue" title="Blue: Settings"></button>
+          </div>
+
+          <div class="remote-brand">SAMSUNG</div>
+        </div>
+
+        <!-- Virtual USB Pendrive Slot -->
+        <div class="usb-sim-card">
+          <div class="usb-sim-title">
+            <span>💾 Virtual USB Pendrive</span>
+            <label style="cursor:pointer;font-weight:600;color:#cbd5e1;">
+              <input id="chk-usb-mounted" type="checkbox" checked> Plugged
+            </label>
+          </div>
+          <input id="usb-m3u-url" class="usb-sim-input" type="url" placeholder="iptv.json m3uUrl (paste here)">
+          <input id="usb-epg-url" class="usb-sim-input" type="url" placeholder="iptv.json epgUrl (optional)">
+          <button id="btn-push-usb" class="sim-btn is-on" type="button" style="width:100%;">
+            Push URLs via Simulated USB
+          </button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const iframe = document.getElementById('tv-iframe');
+      const clip = document.getElementById('tv-screen-clip');
+      const stageBox = document.getElementById('tv-stage-box');
+      const standby = document.getElementById('tv-standby');
+      const tvLed = document.getElementById('tv-led');
+      const selModel = document.getElementById('sel-tv-model');
+      const btnMouseLock = document.getElementById('btn-mouse-lock');
+      const btnColdReboot = document.getElementById('btn-cold-reboot');
+      const btnRelaunch = document.getElementById('btn-relaunch-app');
+      const telRes = document.getElementById('tel-res');
+      const telKeys = document.getElementById('tel-keys');
+      const telLastKey = document.getElementById('tel-last-key');
+      const chkUsbMounted = document.getElementById('chk-usb-mounted');
+      const usbM3uInput = document.getElementById('usb-m3u-url');
+      const usbEpgInput = document.getElementById('usb-epg-url');
+      const btnPushUsb = document.getElementById('btn-push-usb');
+
+      let nativeW = 1920;
+      let nativeH = 1080;
+      let strict2017KeyMode = true;
+      let remoteOnly = false;
+      let registeredKeys = new Set();
+
+      // Pre-fill virtual USB fields from saved localStorage if present
+      try {
+        const existing = JSON.parse(localStorage.getItem('vertiptv_settings_v1') || localStorage.getItem('samsiptv_settings_v1') || '{}');
+        if (existing.m3uUrl) usbM3uInput.value = existing.m3uUrl;
+        if (existing.epgUrl) usbEpgInput.value = existing.epgUrl;
+      } catch (_) {}
+
+      function fitTvViewport() {
+        const availW = Math.max(320, stageBox.clientWidth - 28);
+        const availH = Math.max(200, stageBox.clientHeight - 76);
+        const scale = Math.min(availW / nativeW, availH / nativeH);
+        const scaledW = Math.round(nativeW * scale);
+        const scaledH = Math.round(nativeH * scale);
+
+        clip.style.width = scaledW + 'px';
+        clip.style.height = scaledH + 'px';
+        iframe.style.width = nativeW + 'px';
+        iframe.style.height = nativeH + 'px';
+        iframe.style.transform = 'scale(' + scale.toFixed(5) + ')';
+        telRes.textContent = nativeW + '×' + nativeH + ' (' + Math.round(scale * 100) + '%)';
+      }
+
+      // Inject simulated Samsung Tizen OS APIs (`tizen.tvinputdevice`, `tizen.filesystem`, `tizen.application`) into iframe
+      function injectTizenApis() {
+        const win = iframe.contentWindow;
+        if (!win) return;
+        registeredKeys = new Set();
+        telKeys.textContent = '0';
+
+        win.tizen = {
+          tvinputdevice: {
+            registerKey(k) {
+              registeredKeys.add(k);
+              telKeys.textContent = String(registeredKeys.size);
+            }
+          },
+          tvaudiocontrol: {
+            setMute() {}
+          },
+          application: {
+            getCurrentApplication() {
+              return {
+                exit() {
+                  standby.classList.add('is-visible');
+                  tvLed.classList.add('is-off');
+                  telLastKey.textContent = 'App exited via tizen.application.exit()';
+                }
+              };
+            }
+          },
+          filesystem: {
+            listStorages(onSuccess) {
+              const storages = chkUsbMounted.checked
+                ? [{ label: 'removable_sda1', type: 'EXTERNAL', state: 'MOUNTED' }]
+                : [];
+              setTimeout(() => onSuccess(storages), 20);
+            },
+            resolve(label, onSuccess, onError) {
+              if (!chkUsbMounted.checked || label !== 'removable_sda1') {
+                if (onError) onError(new Error('Not mounted'));
+                return;
+              }
+              const payload = JSON.stringify({
+                m3uUrl: usbM3uInput.value.trim(),
+                epgUrl: usbEpgInput.value.trim(),
+                catchupDays: 3
+              });
+              const fakeFile = {
+                name: 'iptv.json',
+                isFile: true,
+                fileSize: payload.length,
+                openStream(_mode, cb) {
+                  cb({
+                    read() { return payload; },
+                    close() {}
+                  });
+                }
+              };
+              onSuccess({
+                fullPath: '/opt/storage/usb/sda1',
+                listFiles(cb) {
+                  cb(usbM3uInput.value.trim() ? [fakeFile] : []);
+                }
+              });
+            }
+          }
+        };
+      }
+
+      iframe.addEventListener('load', () => {
+        injectTizenApis();
+        // Forward key events pressed inside iframe up to telemetry too
+        try {
+          iframe.contentWindow.addEventListener('keydown', (ev) => {
+            flashRemoteButton(ev.keyCode);
+          });
+        } catch (_) {}
+      });
+
+      // Inject as early as possible on navigation start
+      const earlyPoll = setInterval(() => {
+        try {
+          if (iframe.contentWindow && !iframe.contentWindow.tizen) {
+            injectTizenApis();
+          }
+        } catch (_) {}
+      }, 50);
+      setTimeout(() => clearInterval(earlyPoll), 5000);
+
+      function flashRemoteButton(kcode) {
+        const btn = document.querySelector(`[data-kcode="${kcode}"]`);
+        if (!btn) return;
+        btn.classList.add('is-pressed');
+        setTimeout(() => btn.classList.remove('is-pressed'), 130);
+      }
+
+      function sendTizenKey(keyCode, keyName) {
+        if (standby.classList.contains('is-visible')) return;
+        const win = iframe.contentWindow;
+        const doc = iframe.contentDocument;
+        if (!win || !doc) return;
+
+        // First user interaction unlocks iframe audio too
+        try {
+          const vid = doc.getElementById('html5-player');
+          if (vid && vid.muted) {
+            vid.muted = false;
+            vid.volume = 1.0;
+          }
+        } catch (_) {}
+
+        const target = doc.activeElement || doc.body;
+        // In 2017 Tizen 3.0 mode, omit `key` string on remote keys (Chromium M47 sets keyCode only!)
+        const emittedKey = strict2017KeyMode ? '' : keyName;
+
+        const ev = new win.KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: emittedKey,
+          keyCode: keyCode,
+          which: keyCode
+        });
+        Object.defineProperty(ev, 'keyCode', { get: () => keyCode });
+        Object.defineProperty(ev, 'which', { get: () => keyCode });
+
+        target.dispatchEvent(ev);
+
+        // If `Enter` (13) was dispatched onto a focused <button> inside the modal/topbar, trigger native click just like a browser/TV runtime does!
+        if (keyCode === 13 && !ev.defaultPrevented && target && target.tagName === 'BUTTON') {
+          target.click();
+        }
+
+        flashRemoteButton(keyCode);
+        telLastKey.textContent = `${keyName} (keyCode=${keyCode}${strict2017KeyMode ? ', M47 2017 mode' : ''})`;
+      }
+
+      // Bind clickable Samsung remote buttons
+      document.querySelectorAll('[data-kcode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          sendTizenKey(Number(btn.dataset.kcode), btn.dataset.kname || '');
+        });
+      });
+
+      // Map keyboard keys to real Samsung Tizen hardware signals while focused on Simulator page
+      window.addEventListener('keydown', (e) => {
+        const activeTag = document.activeElement && document.activeElement.tagName;
+        if (activeTag === 'INPUT' || activeTag === 'SELECT' || activeTag === 'TEXTAREA') return;
+
+        // Check if user is actively typing inside an unlocked text input inside the TV iframe
+        const iframeActive = iframe.contentDocument && iframe.contentDocument.activeElement;
+        if (iframeActive && iframeActive.tagName === 'INPUT' && !iframeActive.readOnly) {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            sendTizenKey(10009, 'TizenReturn');
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            sendTizenKey(13, 'Enter');
+          }
+          return;
+        }
+
+        const map = {
+          ArrowUp: [38, 'ArrowUp'],
+          ArrowDown: [40, 'ArrowDown'],
+          ArrowLeft: [37, 'ArrowLeft'],
+          ArrowRight: [39, 'ArrowRight'],
+          Enter: [13, 'Enter'],
+          Escape: [10009, 'TizenReturn'],
+          Backspace: [10009, 'TizenReturn'],
+          PageUp: [427, 'ChannelUp'],
+          PageDown: [428, 'ChannelDown'],
+          ' ': [10252, 'MediaPlayPause'],
+          f: [403, 'ColorF0Red'],
+          F: [403, 'ColorF0Red'],
+          g: [404, 'ColorF1Green'],
+          G: [404, 'ColorF1Green'],
+          s: [406, 'ColorF3Blue'],
+          S: [406, 'ColorF3Blue'],
+          m: [449, 'AudioVolumeMute'],
+          M: [449, 'AudioVolumeMute']
+        };
+
+        if (map[e.key]) {
+          e.preventDefault();
+          sendTizenKey(map[e.key][0], map[e.key][1]);
+        } else if (/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+          sendTizenKey(48 + Number(e.key), e.key);
+        }
+      });
+
+      selModel.addEventListener('change', () => {
+        const v = selModel.value;
+        if (v === '2017-hd') {
+          nativeW = 1280;
+          nativeH = 720;
+          strict2017KeyMode = true;
+        } else if (v === '2024-fhd') {
+          nativeW = 1920;
+          nativeH = 1080;
+          strict2017KeyMode = false;
+        } else {
+          nativeW = 1920;
+          nativeH = 1080;
+          strict2017KeyMode = true;
+        }
+        fitTvViewport();
+      });
+
+      btnMouseLock.addEventListener('click', () => {
+        remoteOnly = !remoteOnly;
+        iframe.classList.toggle('remote-only', remoteOnly);
+        btnMouseLock.classList.toggle('is-on', remoteOnly);
+        btnMouseLock.textContent = remoteOnly ? '🔒 Remote-Only Screen' : '🖱 Mouse Enabled in TV';
+      });
+
+      function rebootTv() {
+        standby.classList.remove('is-visible');
+        tvLed.classList.remove('is-off');
+        injectTizenApis();
+        iframe.contentWindow.location.reload();
+        telLastKey.textContent = 'Cold Booted Simulated Samsung TV';
+      }
+
+      btnColdReboot.addEventListener('click', rebootTv);
+      document.getElementById('rem-power').addEventListener('click', rebootTv);
+      btnRelaunch.addEventListener('click', rebootTv);
+
+      btnPushUsb.addEventListener('click', () => {
+        if (!usbM3uInput.value.trim()) {
+          usbM3uInput.focus();
+          telLastKey.textContent = 'Paste an M3U URL in Virtual USB box first!';
+          return;
+        }
+        chkUsbMounted.checked = true;
+        injectTizenApis();
+        const doc = iframe.contentDocument;
+        const usbBtn = doc && doc.getElementById('btn-usb-import');
+        if (usbBtn) usbBtn.click();
+        telLastKey.textContent = 'Triggered USB Pendrive Import (removable_sda1)';
+      });
+
+      window.addEventListener('resize', fitTvViewport);
+      fitTvViewport();
+    })();
+  </script>
+</body>
+</html>

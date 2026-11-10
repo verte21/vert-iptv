@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>vertIPTV — Fast Tizen IPTV &amp; 3-Day Catchup</title>
+  <!-- Critical inline boot styles (Tizen 3.0 / Chromium M47+ compatible: explicit top/right/bottom/left, no CSS vars required) -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #05070b;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    #video-stage {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: 1;
+    }
+    #av-player {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      visibility: hidden;
+    }
+    #html5-player {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      display: none;
+    }
+  </style>
+  <link rel="stylesheet" href="css/app.css">
+  <!-- Samsung Tizen WebAPIs (injected natively by Tizen TV runtime) -->
+  <script defer src="$WEBAPIS/webapis/webapis.js"></script>
+  <!-- Self-hosted ES5-compatible HLS, MPEG-TS (.ts), & Gzip (.xml.gz) engines -->
+  <script defer src="vendor/pako_inflate.min.js"></script>
+  <script defer src="vendor/mpegts.min.js"></script>
+  <script defer src="vendor/hls.min.js"></script>
+  <!-- Modular vertIPTV Core -->
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/catchup.js"></script>
+  <script defer src="js/parser.js"></script>
+  <script defer src="js/usb-loader.js"></script>
+  <script defer src="js/demo-data.js"></script>
+  <script defer src="js/player.js"></script>
+  <script defer src="js/spatial-nav.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <!-- Hardware & HTML5 Video Layer -->
+  <div id="video-stage" aria-label="Video playback surface">
+    <object id="av-player" type="application/avplayer"></object>
+    <video id="html5-player" width="1920" height="1080" playsinline preload="none"></video>
+    <div id="stream-status" class="stream-status is-hidden" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="stream-status-text">Tuning stream...</span>
+    </div>
+  </div>
+
+  <!-- Numeric Remote Channel Jump Badge -->
+  <div id="numpad-badge" class="numpad-badge is-hidden" aria-live="polite"></div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
+
+  <!-- Main 3-Column Guide & 3-Day Catchup Overlay -->
+  <section id="guide-drawer" class="guide-drawer" aria-label="Channel Guide and 3-Day Catchup">
+    <header id="guide-topbar" class="guide-topbar" role="toolbar" aria-label="Quick actions">
+      <div class="brand">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span class="brand-title">vertIPTV</span>
+        <span id="playlist-badge" class="playlist-badge">Demo Mode</span>
+      </div>
+
+      <div class="topbar-actions">
+        <input
+          id="search-input"
+          class="top-control search-input"
+          type="text"
+          data-tv-input="1"
+          readonly
+          placeholder="Search (OK to type)..."
+          autocomplete="off"
+          tabindex="0"
+          aria-label="Search channels"
+        >
+        <button id="btn-live-now" class="top-control btn-pill btn-live is-hidden" type="button" tabindex="-1">
+          ● Return to Live
+        </button>
+        <button id="btn-mute-toggle" class="top-control btn-pill" type="button" tabindex="-1" title="Mute / Unmute">
+          🔊 Sound On
+        </button>
+        <button id="btn-fav-toggle" class="top-control btn-pill" type="button" tabindex="-1" title="Toggle Favorite">
+          ★ Favorite
+        </button>
+        <button id="btn-usb-import" class="top-control btn-pill" type="button" tabindex="-1">
+          USB Pendrive
+        </button>
+        <button id="btn-open-settings" class="top-control btn-pill btn-accent" type="button" tabindex="-1">
+          Playlist &amp; EPG
+        </button>
+      </div>
+
+      <div class="topbar-meta">
+        <span id="epg-sync-pill" class="epg-sync-pill">EPG Ready</span>
+        <time id="wall-clock" class="wall-clock">00:00</time>
+      </div>
+    </header>
+
+    <!-- 3 Isolated Columns (Flexbox for 2017 Tizen 3.0 M47 + modern containment) -->
+    <div class="guide-columns">
+      <!-- Column 1: Groups -->
+      <nav id="pane-groups" class="guide-pane pane-groups" aria-label="Channel categories">
+        <div class="pane-header">
+          <span class="pane-title">Categories</span>
+          <span id="groups-count" class="pane-count">0</span>
+        </div>
+        <div id="groups-list" class="groups-list" role="listbox" aria-label="Categories"></div>
+      </nav>
+
+      <!-- Column 2: Virtualized Channel List -->
+      <section id="pane-channels" class="guide-pane pane-channels" aria-label="Live TV channels">
+        <div class="pane-header">
+          <span id="channels-header-title" class="pane-title">All Channels</span>
+          <span id="channels-count" class="pane-count">0</span>
+        </div>
+        <div id="channels-viewport" class="channels-viewport" role="listbox" aria-label="Channels">
+          <div id="channels-spacer" class="channels-spacer">
+            <div id="channels-pool" class="channels-pool"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Column 3: 3-Day Catchup & EPG Program List -->
+      <section id="pane-programs" class="guide-pane pane-programs" aria-label="3-Day Catchup Programs">
+        <div class="pane-header pane-header--programs">
+          <div class="programs-title-row">
+            <span id="programs-channel-title" class="pane-title">Select a channel</span>
+            <span class="catchup-hint">↺ 3 Days Back</span>
+          </div>
+          <div id="day-tabs" class="day-tabs" role="tablist" aria-label="Catchup Day"></div>
+        </div>
+        <div id="programs-list" class="programs-list" role="listbox" aria-label="Programs"></div>
+      </section>
+    </div>
+
+    <footer class="guide-footer">
+      <span class="footer-item"><kbd>▲▼</kbd> Navigate</span>
+      <span class="footer-item"><kbd>◀▶</kbd> Categories / Channels / 3-Day Replay</span>
+      <span class="footer-item"><kbd>OK</kbd> Watch Live / Play Replay</span>
+      <span class="footer-item"><kbd>▲</kbd> Top Bar (Fav / USB / Settings)</span>
+      <span class="footer-item"><kbd>BACK / ESC</kbd> Fullscreen TV</span>
+    </footer>
+  </section>
+
+  <!-- Clean Bottom OSD Bar (Live Info & 3-Day Archive Scrubber) -->
+  <aside id="osd-bar" class="osd-bar is-hidden" aria-label="Now Playing Info">
+    <div class="osd-top">
+      <div class="osd-ch-block">
+        <span id="osd-ch-num" class="osd-ch-num">1</span>
+        <div class="osd-ch-titles">
+          <div class="osd-ch-line">
+            <strong id="osd-ch-name" class="osd-ch-name">Channel</strong>
+            <span id="osd-mode-badge" class="mode-badge mode-badge--live">● LIVE</span>
+          </div>
+          <div id="osd-prog-title" class="osd-prog-title">Live Broadcast</div>
+        </div>
+      </div>
+
+      <div class="osd-right-actions">
+        <span id="osd-clock" class="osd-clock">00:00</span>
+      </div>
+    </div>
+
+    <div class="osd-progress-wrap">
+      <span id="osd-time-start" class="osd-time">--:--</span>
+      <div class="osd-progress-track">
+        <div id="osd-progress-fill" class="osd-progress-fill" style="width: 0%"></div>
+      </div>
+      <span id="osd-time-end" class="osd-time">--:--</span>
+    </div>
+
+    <div class="osd-bottom">
+      <span id="osd-next-info" class="osd-next-info">Press OK for Channels &amp; 3-Day Replay</span>
+      <span id="osd-controls-hint" class="osd-controls-hint">
+        <kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> 3-Day Replay &nbsp;·&nbsp; <kbd>▶</kbd> Info
+      </span>
+    </div>
+  </aside>
+
+  <!-- Settings & Playlist Setup Modal (Pure Arrows + OK + Esc Friendly) -->
+  <div id="settings-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div id="settings-card" class="modal-card">
+      <div class="modal-header">
+        <h2 id="settings-title" class="modal-title">Playlist &amp; 3-Day EPG Setup</h2>
+        <p class="modal-subtitle">
+          Navigate with <strong>Arrows</strong>, press <strong>OK</strong> on a text box to edit (and <strong>OK / Esc</strong> when done), or import directly from a USB pendrive.
+        </p>
+      </div>
+
+      <div class="modal-grid">
+        <div class="field-label">
+          <span>M3U / M3U8 Playlist URL <small>(press OK to edit)</small></span>
+          <input
+            id="inp-m3u"
+            class="modal-control field-input"
+            type="text"
+            data-tv-input="1"
+            readonly
+            placeholder="http://provider.com/get.php?username=...&amp;password=...&amp;type=m3u_plus"
+            autocomplete="off"
+            tabindex="0"
+          >
+        </div>
+
+        <div class="field-label">
+          <span>XMLTV EPG URL <small>(optional if embedded in M3U; .xml or .xml.gz supported)</small></span>
+          <input
+            id="inp-epg"
+            class="modal-control field-input"
+            type="text"
+            data-tv-input="1"
+            readonly
+            placeholder="http://provider.com/xmltv.php?username=...&amp;password=..."
+            autocomplete="off"
+            tabindex="-1"
+          >
+        </div>
+
+        <!-- 1-Press OK Cycle Buttons (100% reliable on 2017 Tizen 3.0 remotes unlike native <select>) -->
+        <div class="field-row-3">
+          <div class="field-col">
+            <span class="field-caption">Catchup URL Protocol (OK to cycle)</span>
+            <button id="btn-cycle-mode" class="modal-control btn-cycle" type="button" tabindex="-1">
+              Auto-Detect
+            </button>
+          </div>
+
+          <div class="field-col">
+            <span class="field-caption">Archive Window (OK to cycle)</span>
+            <button id="btn-cycle-days" class="modal-control btn-cycle" type="button" tabindex="-1">
+              3 Days Back
+            </button>
+          </div>
+
+          <div class="field-col">
+            <span class="field-caption">EPG Time Shift (OK to cycle)</span>
+            <button id="btn-cycle-offset" class="modal-control btn-cycle" type="button" tabindex="-1">
+              0h (Auto TZ)
+            </button>
+          </div>
+        </div>
+
+        <div class="usb-help-box">
+          <div class="usb-help-text">
+            <strong>Zero-Typing Pendrive Tip:</strong> Put <code>iptv.json</code> with
+            <code>{"m3uUrl":"...","epgUrl":"..."}</code> (or raw <code>playlist.m3u</code> + <code>epg.xml</code>) on a FAT32 USB stick, plug it into your Samsung TV, and select <strong>Scan USB Pendrive</strong>.
+          </div>
+          <div class="usb-btn-row">
+            <button id="btn-modal-usb" class="modal-control btn-secondary" type="button" tabindex="-1">
+              Scan USB Pendrive
+            </button>
+            <button id="btn-modal-localfile" class="modal-control btn-secondary" type="button" tabindex="-1">
+              Load Local .m3u File
+            </button>
+            <button id="btn-modal-demo" class="modal-control btn-secondary" type="button" tabindex="-1">
+              Load Built-in Demo
+            </button>
+            <input id="file-picker-m3u" type="file" accept=".m3u,.m3u8,.json,.txt" hidden>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span id="remote-push-hint" class="remote-push-hint"></span>
+        <div class="modal-actions">
+          <button id="btn-modal-cancel" class="modal-control btn-secondary" type="button" tabindex="-1">
+            Close (Esc)
+          </button>
+          <button id="btn-modal-save" class="modal-control btn-primary" type="button" tabindex="-1">
+            Save &amp; Reload Playlist
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

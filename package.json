@@ -1,0 +1,55 @@
+{
+  "name": "vert-iptv",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/verte21/vert-iptv.git"
+  },
+  "type": "module",
+  "description": "vertIPTV — Fast M3U + 3-Day EPG Catchup IPTV Player for Samsung Tizen Smart TVs (2015–2026)",
+  "packageType": "app",
+  "appName": "vertIPTV",
+  "appPath": "index.html",
+  "keys": [
+    "MediaPlay",
+    "MediaPause",
+    "MediaPlayPause",
+    "MediaStop",
+    "MediaRewind",
+    "MediaFastForward",
+    "ChannelUp",
+    "ChannelDown",
+    "Info",
+    "Guide",
+    "ColorF0Red",
+    "ColorF1Green",
+    "ColorF2Yellow",
+    "ColorF3Blue",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "bash scripts/build-wgt.sh",
+    "deploy": "bash scripts/deploy-tv.sh",
+    "tv:scan": "bash scripts/deploy-tv.sh --scan",
+    "tv:install": "bash scripts/deploy-tv.sh",
+    "tv:arm-store": "bash scripts/deploy-tv.sh --arm-tvstore",
+    "test": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "hls.js": "^1.6.15",
+    "mpegts.js": "^1.8.2",
+    "pako": "^3.0.3"
+  }
+}
