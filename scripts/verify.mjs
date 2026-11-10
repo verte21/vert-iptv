@@ -372,7 +372,41 @@ https://arch.example.com/ch/custom.ch/live.m3u8
     console.log(`   ✓ Parsed 50,000 XMLTV programmes (filtered 33,334 unmatched) in ${dtXml.toFixed(1)} ms`);
   }
 
-  console.log('✅ All parser, 3-day EPG, catchup URL, Samsung wgt-private persistence, .xml.gz, anti-blink, and TV installer tests passed!');
+  console.log('9. Testing Multi-Language UI dictionaries (EN / DE / PL) & persistence...');
+  {
+    const savedPl = Storage.saveSettings({ lang: 'pl' });
+    assert.equal(savedPl.lang, 'pl');
+    const savedDe = Storage.saveSettings({ lang: 'de' });
+    assert.equal(savedDe.lang, 'de');
+    const fallbackInvalid = Storage.saveSettings({ lang: 'invalid_code' });
+    assert.equal(fallbackInvalid.lang, 'en');
+
+    const appCode = fs.readFileSync(path.join(rootDir, 'js/app.js'), 'utf8');
+    const i18nBox = {
+      window: {},
+      document: {
+        readyState: 'loading',
+        addEventListener() {},
+        getElementById() { return null; },
+        querySelectorAll() { return []; }
+      }
+    };
+    i18nBox.window = i18nBox;
+    vm.createContext(i18nBox);
+    vm.runInContext(appCode, i18nBox, { filename: 'js/app.js' });
+    const i18n = i18nBox.vertIPTV.I18n;
+    assert.ok(i18n && i18n.en && i18n.de && i18n.pl, 'I18n must include en, de, and pl dictionaries');
+    const enKeys = Object.keys(i18n.en);
+    for (const k of enKeys) {
+      assert.ok(i18n.de[k] !== undefined, `Missing German translation key: ${k}`);
+      assert.ok(i18n.pl[k] !== undefined, `Missing Polish translation key: ${k}`);
+    }
+    assert.equal(i18n.en.today, 'Today');
+    assert.equal(i18n.de.today, 'Heute');
+    assert.equal(i18n.pl.today, 'Dzisiaj');
+  }
+
+  console.log('✅ All parser, 3-day EPG, catchup URL, Samsung wgt-private persistence, .xml.gz, anti-blink, TV installer, and EN/DE/PL i18n tests passed!');
 }
 
 run().catch((err) => {

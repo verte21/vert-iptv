@@ -974,6 +974,7 @@ kbd {
 .field-col {
   -webkit-flex: 1 1 0%;
   flex: 1 1 0%;
+  min-width: 0;
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
@@ -989,6 +990,9 @@ kbd {
   font-weight: 600;
   color: #94a3b8;
   margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-cycle {
@@ -998,9 +1002,12 @@ kbd {
   border: 1.5px solid rgba(148, 163, 184, 0.25);
   background: #09101d;
   color: #22d3ee;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 700;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 

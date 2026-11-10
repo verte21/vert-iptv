@@ -38,6 +38,253 @@
   ];
   var CATCHUP_DAYS_OPTS = [1, 3, 5, 7];
   var EPG_OFFSET_OPTS = [-120, -60, 0, 60, 120];
+  var LANG_OPTS = [
+    { value: 'en', shortLabel: '🌐 EN', label: 'English' },
+    { value: 'de', shortLabel: '🌐 DE', label: 'Deutsch' },
+    { value: 'pl', shortLabel: '🌐 PL', label: 'Polski' }
+  ];
+
+  var I18N = {
+    en: {
+      daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      today: 'Today',
+      yesterday: 'Yesterday',
+      searchPlaceholder: 'Search (OK to type)...',
+      returnToLive: '● Return to Live',
+      soundOn: '🔊 Sound On',
+      muted: '🔇 Muted',
+      clickForSound: '🔇 Click / Key for Sound',
+      favoriteBtn: '★ Favorite',
+      usbBtn: 'USB Pendrive',
+      settingsBtn: 'Playlist & EPG',
+      categoriesTitle: 'Categories',
+      allChannels: 'All Channels',
+      favoritesGroup: '★ Favorites',
+      recentGroup: '↺ Recent',
+      searchPrefix: 'Search: "',
+      noChannelsMatch: 'No channels match this filter.',
+      liveTvStream: 'Live TV Stream',
+      selectAChannel: 'Select a channel',
+      noChannelSelected: 'No channel selected',
+      noScheduleEntries: 'No schedule entries available.',
+      daysBackBadge: '↺ {d} Days Back',
+      dayBackBadge: '↺ {d} Day Back',
+      broadcastSlot: 'Broadcast Slot',
+      hourlyFallbackDesc: 'Direct 1-hour archive jump (no EPG metadata on this channel)',
+      pillPlaying: '▶ Playing',
+      pillReplay: '↺ Replay',
+      pillLive: '● LIVE',
+      pillUpcoming: 'Upcoming',
+      footerHtml:
+        '<span class="footer-item"><kbd>▲▼</kbd> Navigate</span>' +
+        '<span class="footer-item"><kbd>◀▶</kbd> Categories / Channels / 3-Day Replay</span>' +
+        '<span class="footer-item"><kbd>OK</kbd> Watch Live / Play Replay</span>' +
+        '<span class="footer-item"><kbd>▲</kbd> Top Bar (Fav / USB / Lang / Settings)</span>' +
+        '<span class="footer-item"><kbd>BACK / ESC</kbd> Fullscreen TV</span>',
+      osdArchiveBadge: '↺ ARCHIVE · ',
+      osdLiveBadge: '● LIVE',
+      osdUpNext: 'Up Next',
+      osdLiveBroadcast: 'Live Broadcast',
+      osdCatchupFallback: '3-Day Catchup Playback',
+      osdLiveHintText: 'Press ◀ Left for 3-Day Replay · OK for Channel Guide',
+      osdArchiveControlsHtml:
+        '<kbd>◀▶</kbd> Scrub ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live TV',
+      osdLiveControlsHtml:
+        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> 3-Day Replay &nbsp;·&nbsp; <kbd>▶</kbd> Info',
+      modalTitle: 'Playlist & 3-Day EPG Setup',
+      modalSubtitleHtml:
+        'Navigate with <strong>Arrows</strong>, press <strong>OK</strong> on a text box to edit (and <strong>OK / Esc</strong> when done), or import directly from a USB pendrive.',
+      lblM3uHtml: 'M3U / M3U8 Playlist URL <small>(press OK to edit)</small>',
+      lblEpgHtml: 'XMLTV EPG URL <small>(optional if embedded in M3U; .xml or .xml.gz supported)</small>',
+      lblCycleMode: 'Catchup Protocol (OK)',
+      lblCycleDays: 'Archive Window (OK)',
+      lblCycleOffset: 'EPG Time Shift (OK)',
+      lblCycleLang: 'Language (OK)',
+      usbHelpHtml:
+        '<strong>Zero-Typing Pendrive Tip:</strong> Put <code>iptv.json</code> with ' +
+        '<code>{"m3uUrl":"...","epgUrl":"..."}</code> (or raw <code>playlist.m3u</code> + <code>epg.xml</code>) on a FAT32 USB stick, plug it into your Samsung TV, and select <strong>Scan USB Pendrive</strong>.',
+      btnScanUsb: 'Scan USB Pendrive',
+      btnLoadLocal: 'Load Local .m3u File',
+      btnLoadDemo: 'Load Built-in Demo',
+      btnCloseEsc: 'Close (Esc)',
+      btnSaveReload: 'Save & Reload Playlist',
+      autoTz: '0h (Auto TZ)',
+      bufferingPct: 'Buffering {p}%...',
+      connectingStream: 'Connecting stream...',
+      toastReturnedLive: '● Returned to Live TV: ',
+      toastLiveTv: '● Live TV: ',
+      toastUpcoming: 'Upcoming program — airs at ',
+      toastFavAdded: '★ Added to Favorites: ',
+      toastFavRemoved: 'Removed from Favorites: ',
+      toastPaused: '⏸ Paused',
+      toastPlaying: '▶ Playing',
+      toastArchPaused: '⏸ Archive Paused',
+      toastArchPlaying: '▶ Archive Playing',
+      toastBackExit: 'Press BACK again to exit vertIPTV',
+      toastSavedSettings: '✓ Saved playlist & EPG settings',
+      toastLangChanged: '🌐 Language: English'
+    },
+    de: {
+      daysShort: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
+      today: 'Heute',
+      yesterday: 'Gestern',
+      searchPlaceholder: 'Suche (OK zum Tippen)...',
+      returnToLive: '● Zurück zu Live',
+      soundOn: '🔊 Ton an',
+      muted: '🔇 Stumm',
+      clickForSound: '🔇 Taste für Ton',
+      favoriteBtn: '★ Favorit',
+      usbBtn: 'USB-Stick',
+      settingsBtn: 'Playlist & EPG',
+      categoriesTitle: 'Kategorien',
+      allChannels: 'Alle Sender',
+      favoritesGroup: '★ Favoriten',
+      recentGroup: '↺ Zuletzt',
+      searchPrefix: 'Suche: "',
+      noChannelsMatch: 'Keine Sender für diesen Filter gefunden.',
+      liveTvStream: 'Live-TV-Stream',
+      selectAChannel: 'Sender auswählen',
+      noChannelSelected: 'Kein Sender gewählt',
+      noScheduleEntries: 'Keine Programmdaten verfügbar.',
+      daysBackBadge: '↺ {d} Tage Archiv',
+      dayBackBadge: '↺ {d} Tag Archiv',
+      broadcastSlot: 'Sendefenster',
+      hourlyFallbackDesc: 'Direkter 1-Stunden-Archivsprung (keine EPG-Daten auf diesem Sender)',
+      pillPlaying: '▶ Läuft',
+      pillReplay: '↺ Replay',
+      pillLive: '● LIVE',
+      pillUpcoming: 'Geplant',
+      footerHtml:
+        '<span class="footer-item"><kbd>▲▼</kbd> Navigieren</span>' +
+        '<span class="footer-item"><kbd>◀▶</kbd> Kategorien / Sender / 3-Tage-Archiv</span>' +
+        '<span class="footer-item"><kbd>OK</kbd> Live / Replay starten</span>' +
+        '<span class="footer-item"><kbd>▲</kbd> Leiste (Fav / USB / Sprache / Setup)</span>' +
+        '<span class="footer-item"><kbd>BACK / ESC</kbd> Vollbild-TV</span>',
+      osdArchiveBadge: '↺ ARCHIV · ',
+      osdLiveBadge: '● LIVE',
+      osdUpNext: 'Danach',
+      osdLiveBroadcast: 'Live-Übertragung',
+      osdCatchupFallback: '3-Tage-Archiv Wiedergabe',
+      osdLiveHintText: '◀ Links für 3-Tage-Replay · OK für Senderliste',
+      osdArchiveControlsHtml:
+        '<kbd>◀▶</kbd> Spulen ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live-TV',
+      osdLiveControlsHtml:
+        '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Sender &nbsp;·&nbsp; <kbd>◀</kbd> 3-Tage-Replay &nbsp;·&nbsp; <kbd>▶</kbd> Info',
+      modalTitle: 'Playlist & 3-Tage-EPG Einstellungen',
+      modalSubtitleHtml:
+        'Mit <strong>Pfeiltasten</strong> navigieren, <strong>OK</strong> im Textfeld zum Tippen drücken (und <strong>OK / Esc</strong> zum Beenden) oder direkt vom USB-Stick laden.',
+      lblM3uHtml: 'M3U / M3U8 Playlist-URL <small>(OK zum Bearbeiten)</small>',
+      lblEpgHtml: 'XMLTV EPG-URL <small>(optional falls in M3U enthalten; .xml oder .xml.gz)</small>',
+      lblCycleMode: 'Catchup-Modus (OK)',
+      lblCycleDays: 'Archiv-Zeitraum (OK)',
+      lblCycleOffset: 'EPG-Zeitversatz (OK)',
+      lblCycleLang: 'Sprache (OK)',
+      usbHelpHtml:
+        '<strong>USB-Stick Schnellstart:</strong> Speichere <code>iptv.json</code> mit ' +
+        '<code>{"m3uUrl":"...","epgUrl":"..."}</code> (oder <code>playlist.m3u</code> + <code>epg.xml</code>) auf einem FAT32-USB-Stick und wähle <strong>USB-Stick scannen</strong>.',
+      btnScanUsb: 'USB-Stick scannen',
+      btnLoadLocal: 'Lokale .m3u Datei',
+      btnLoadDemo: 'Demo-Sender laden',
+      btnCloseEsc: 'Schließen (Esc)',
+      btnSaveReload: 'Speichern & Neu laden',
+      autoTz: '0h (Auto-Zeit)',
+      bufferingPct: 'Puffern {p}%...',
+      connectingStream: 'Verbinde Stream...',
+      toastReturnedLive: '● Zurück zum Live-TV: ',
+      toastLiveTv: '● Live-TV: ',
+      toastUpcoming: 'Geplante Sendung — startet um ',
+      toastFavAdded: '★ Zu Favoriten hinzugefügt: ',
+      toastFavRemoved: 'Aus Favoriten entfernt: ',
+      toastPaused: '⏸ Pausiert',
+      toastPlaying: '▶ Wiedergabe',
+      toastArchPaused: '⏸ Archiv pausiert',
+      toastArchPlaying: '▶ Archiv läuft',
+      toastBackExit: 'Nochmals ZURÜCK drücken zum Beenden',
+      toastSavedSettings: '✓ Playlist & EPG gespeichert',
+      toastLangChanged: '🌐 Sprache: Deutsch'
+    },
+    pl: {
+      daysShort: ['Ndz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'],
+      today: 'Dzisiaj',
+      yesterday: 'Wczoraj',
+      searchPlaceholder: 'Szukaj (OK aby pisać)...',
+      returnToLive: '● Powrót na żywo',
+      soundOn: '🔊 Dźwięk wł.',
+      muted: '🔇 Wyciszono',
+      clickForSound: '🔇 Kliknij dla dźwięku',
+      favoriteBtn: '★ Ulubione',
+      usbBtn: 'Pendrive USB',
+      settingsBtn: 'Lista i EPG',
+      categoriesTitle: 'Kategorie',
+      allChannels: 'Wszystkie kanały',
+      favoritesGroup: '★ Ulubione',
+      recentGroup: '↺ Ostatnie',
+      searchPrefix: 'Szukaj: "',
+      noChannelsMatch: 'Brak kanałów spełniających filtr.',
+      liveTvStream: 'Transmisja na żywo',
+      selectAChannel: 'Wybierz kanał',
+      noChannelSelected: 'Nie wybrano kanału',
+      noScheduleEntries: 'Brak programu TV dla tego dnia.',
+      daysBackBadge: '↺ {d} dni wstecz',
+      dayBackBadge: '↺ {d} dzień wstecz',
+      broadcastSlot: 'Pasmo archiwum',
+      hourlyFallbackDesc: 'Skok do archiwum co 1 godz. (brak danych EPG dla tego kanału)',
+      pillPlaying: '▶ Odtwarzanie',
+      pillReplay: '↺ Odtwórz',
+      pillLive: '● NA ŻYWO',
+      pillUpcoming: 'Wkrótce',
+      footerHtml:
+        '<span class="footer-item"><kbd>▲▼</kbd> Nawigacja</span>' +
+        '<span class="footer-item"><kbd>◀▶</kbd> Kategorie / Kanały / Archiwum 3 dni</span>' +
+        '<span class="footer-item"><kbd>OK</kbd> Na żywo / Odtwórz z archiwum</span>' +
+        '<span class="footer-item"><kbd>▲</kbd> Pasek górny (Ulub. / USB / Język / Ustaw.)</span>' +
+        '<span class="footer-item"><kbd>BACK / ESC</kbd> Pełny ekran</span>',
+      osdArchiveBadge: '↺ ARCHIWUM · ',
+      osdLiveBadge: '● NA ŻYWO',
+      osdUpNext: 'Następnie',
+      osdLiveBroadcast: 'Transmisja na żywo',
+      osdCatchupFallback: 'Odtwarzanie z archiwum (3 dni)',
+      osdLiveHintText: '◀ W lewo: Archiwum 3 dni · OK: Lista kanałów',
+      osdArchiveControlsHtml:
+        '<kbd>◀▶</kbd> Przewiń ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pauza/Start &nbsp;·&nbsp; <kbd>▲▼</kbd> Przewodnik &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Na żywo',
+      osdLiveControlsHtml:
+        '<kbd>OK</kbd> Przewodnik &nbsp;·&nbsp; <kbd>▲▼</kbd> Kanał &nbsp;·&nbsp; <kbd>◀</kbd> Archiwum 3 dni &nbsp;·&nbsp; <kbd>▶</kbd> Info',
+      modalTitle: 'Ustawienia listy M3U i 3-dniowego EPG',
+      modalSubtitleHtml:
+        'Poruszaj się <strong>Strzałkami</strong>, naciśnij <strong>OK</strong> na polu tekstowym aby pisać (oraz <strong>OK / Esc</strong> po zakończeniu) lub wczytaj listę z pendrive USB.',
+      lblM3uHtml: 'Adres URL listy M3U / M3U8 <small>(OK aby edytować)</small>',
+      lblEpgHtml: 'Adres URL programu XMLTV EPG <small>(opcjonalny; obsługuje .xml oraz .xml.gz)</small>',
+      lblCycleMode: 'Tryb Catchup (OK)',
+      lblCycleDays: 'Okno archiwum (OK)',
+      lblCycleOffset: 'Przesunięcie EPG (OK)',
+      lblCycleLang: 'Język / Language (OK)',
+      usbHelpHtml:
+        '<strong>Szybki import z USB (bez pisania na pilocie):</strong> Wgraj plik <code>iptv.json</code> z ' +
+        '<code>{"m3uUrl":"...","epgUrl":"..."}</code> (lub <code>playlist.m3u</code> + <code>epg.xml</code>) na pendrive FAT32, włóż do TV i wybierz <strong>Skanuj pendrive USB</strong>.',
+      btnScanUsb: 'Skanuj pendrive USB',
+      btnLoadLocal: 'Wczytaj plik .m3u',
+      btnLoadDemo: 'Załaduj kanały Demo',
+      btnCloseEsc: 'Zamknij (Esc)',
+      btnSaveReload: 'Zapisz i przeładuj',
+      autoTz: '0h (Auto strefa)',
+      bufferingPct: 'Buforowanie {p}%...',
+      connectingStream: 'Łączenie ze strumieniem...',
+      toastReturnedLive: '● Powrót do TV na żywo: ',
+      toastLiveTv: '● Na żywo: ',
+      toastUpcoming: 'Program jeszcze się nie zaczął — emisja o ',
+      toastFavAdded: '★ Dodano do ulubionych: ',
+      toastFavRemoved: 'Usunięto z ulubionych: ',
+      toastPaused: '⏸ Pauza',
+      toastPlaying: '▶ Odtwarzanie',
+      toastArchPaused: '⏸ Archiwum wstrzymane',
+      toastArchPlaying: '▶ Odtwarzanie archiwum',
+      toastBackExit: 'Naciśnij ponownie BACK aby wyjść z vertIPTV',
+      toastSavedSettings: '✓ Zapisano ustawienia listy i EPG',
+      toastLangChanged: '🌐 Język: Polski'
+    }
+  };
+
+  NS.I18n = I18N;
 
   var dom = {};
   var state = {
@@ -95,6 +342,11 @@
     modalMode: 'auto',
     modalDays: 3,
     modalOffsetMin: 0,
+    modalLang: 'en',
+
+    // Audio mute state
+    isMuted: false,
+    isAutoplayBlocked: false,
 
     // Playback & Archive scrubbing state
     playbackMode: 'live',
@@ -121,6 +373,23 @@
     return document.getElementById(id);
   }
 
+  function getLang() {
+    var code = state.settings && state.settings.lang;
+    return I18N[code] ? code : 'en';
+  }
+
+  function t(key) {
+    var dict = I18N[getLang()] || I18N.en;
+    return dict[key] !== undefined ? dict[key] : I18N.en[key] || key;
+  }
+
+  function getLangOption(code) {
+    for (var i = 0; i < LANG_OPTS.length; i++) {
+      if (LANG_OPTS[i].value === code) return LANG_OPTS[i];
+    }
+    return LANG_OPTS[0];
+  }
+
   function pad2(n) {
     return n < 10 ? '0' + n : String(n);
   }
@@ -136,7 +405,7 @@
   }
 
   function formatShortDay(epochSec) {
-    var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var days = t('daysShort');
     var d = new Date(epochSec * 1000);
     return days[d.getDay()] + ' ' + pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1);
   }
@@ -287,9 +556,9 @@
 
   function rebuildDisplayGroups() {
     var list = [
-      { id: '__all__', name: 'All Channels', count: state.allChannels.length },
-      { id: '__fav__', name: '★ Favorites', count: state.favorites.size },
-      { id: '__recent__', name: '↺ Recent', count: state.recents.length }
+      { id: '__all__', name: t('allChannels'), count: state.allChannels.length },
+      { id: '__fav__', name: t('favoritesGroup'), count: state.favorites.size },
+      { id: '__recent__', name: t('recentGroup'), count: state.recents.length }
     ];
     for (var i = 0; i < state.rawGroups.length; i++) {
       var g = state.rawGroups[i];
@@ -333,7 +602,7 @@
     state.filteredChannels = base;
     state.filterGen = (state.filterGen || 0) + 1;
     if (dom.channelsHeaderTitle) {
-      dom.channelsHeaderTitle.textContent = q ? 'Search: "' + state.searchQuery + '"' : (grp ? grp.name : 'Channels');
+      dom.channelsHeaderTitle.textContent = q ? t('searchPrefix') + state.searchQuery + '"' : (grp ? grp.name : t('allChannels'));
     }
     if (dom.channelsCount) {
       dom.channelsCount.textContent = String(base.length);
@@ -454,7 +723,7 @@
       state.poolEndIdx = 0;
       pool.style.webkitTransform = 'translate3d(0,0,0)';
       pool.style.transform = 'translate3d(0,0,0)';
-      pool.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:15px;">No channels match this filter.</div>';
+      pool.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:15px;">' + escapeHtml(t('noChannelsMatch')) + '</div>';
       return;
     }
 
@@ -527,7 +796,7 @@
       if (isFocused) cls += ' is-focused';
 
       var sched = getNowAndNextProgram(ch, nowSec);
-      var nowTitle = sched.now ? sched.now.t : 'Live TV Stream';
+      var nowTitle = sched.now ? sched.now.t : t('liveTvStream');
       var pct = 0;
       if (sched.now && sched.now.e > sched.now.s) {
         pct = Math.max(2, Math.min(100, Math.round(((nowSec - sched.now.s) / (sched.now.e - sched.now.s)) * 100)));
@@ -576,7 +845,7 @@
     for (var d = 0; d <= daysBack; d++) {
       var startSec = todayStartSec - d * 86400;
       var endSec = startSec + 86400;
-      var label = d === 0 ? 'Today' : d === 1 ? 'Yesterday' : formatShortDay(startSec);
+      var label = d === 0 ? t('today') : d === 1 ? t('yesterday') : formatShortDay(startSec);
       tabs.push({
         offset: d,
         label: label,
@@ -605,12 +874,12 @@
 
     if (!matched.length) {
       var limitSec = dayTab.offset === 0 ? Math.min(dayTab.endSec, nowSec + 3600) : dayTab.endSec;
-      for (var t = dayTab.startSec; t < limitSec; t += 3600) {
+      for (var slotSec = dayTab.startSec; slotSec < limitSec; slotSec += 3600) {
         matched.push({
-          s: t,
-          e: t + 3600,
-          t: formatClock(t) + ' – ' + formatClock(t + 3600) + ' Broadcast Slot',
-          d: 'Direct 1-hour archive jump (no EPG metadata on this channel)',
+          s: slotSec,
+          e: slotSec + 3600,
+          t: formatClock(slotSec) + ' – ' + formatClock(slotSec + 3600) + ' ' + t('broadcastSlot'),
+          d: t('hourlyFallbackDesc'),
           isHourlyFallback: true
         });
       }
@@ -622,7 +891,7 @@
     var ch = state.filteredChannels[state.focusedChannelIdx];
     if (!ch) {
       state.currentDayPrograms = [];
-      if (dom.programsChannelTitle) dom.programsChannelTitle.textContent = 'No channel selected';
+      if (dom.programsChannelTitle) dom.programsChannelTitle.textContent = t('noChannelSelected');
       if (dom.dayTabs) dom.dayTabs.innerHTML = '';
       if (dom.programsList) dom.programsList.innerHTML = '';
       return;
@@ -712,7 +981,7 @@
     if (!progs.length) {
       state.programsRenderedRef = progs;
       state.programsRenderedFocused = -1;
-      dom.programsList.innerHTML = '<div style="padding:18px;color:#94a3b8;">No schedule entries available.</div>';
+      dom.programsList.innerHTML = '<div style="padding:18px;color:#94a3b8;">' + escapeHtml(t('noScheduleEntries')) + '</div>';
       return;
     }
 
@@ -795,13 +1064,13 @@
 
       var pillHtml = '';
       if (isPlayingThisArchive) {
-        pillHtml = '<span class="prog-pill prog-pill--replay">▶ Playing</span>';
+        pillHtml = '<span class="prog-pill prog-pill--replay">' + escapeHtml(t('pillPlaying')) + '</span>';
       } else if (isPast) {
-        pillHtml = '<span class="prog-pill prog-pill--replay">↺ Replay</span>';
+        pillHtml = '<span class="prog-pill prog-pill--replay">' + escapeHtml(t('pillReplay')) + '</span>';
       } else if (isLive) {
-        pillHtml = '<span class="prog-pill prog-pill--live">● LIVE</span>';
+        pillHtml = '<span class="prog-pill prog-pill--live">' + escapeHtml(t('pillLive')) + '</span>';
       } else {
-        pillHtml = '<span class="prog-pill prog-pill--upcoming">Upcoming</span>';
+        pillHtml = '<span class="prog-pill prog-pill--upcoming">' + escapeHtml(t('pillUpcoming')) + '</span>';
       }
 
       html +=
@@ -895,7 +1164,7 @@
     if (!channel || !program) return;
     var nowSec = Math.floor(Date.now() / 1000);
     if (program.s > nowSec) {
-      showToast('Upcoming program — airs at ' + formatClock(program.s));
+      showToast(t('toastUpcoming') + formatClock(program.s));
       return;
     }
 
@@ -906,7 +1175,7 @@
         showOsd(4200);
       } else {
         tuneLiveChannel(channel, true);
-        showToast('● Live TV: ' + program.t);
+        showToast(t('toastLiveTv') + program.t);
       }
       return;
     }
@@ -927,14 +1196,14 @@
 
     setGuideOpen(false);
     showOsd(5500);
-    showToast('↺ Replay: ' + program.t + ' (' + formatShortDay(program.s) + ' ' + formatClock(program.s) + ')');
+    showToast(t('pillReplay') + ': ' + program.t + ' (' + formatShortDay(program.s) + ' ' + formatClock(program.s) + ')');
   }
 
   function returnToLive() {
     var ch = getChannelByKey(state.playingChannelKey) || state.filteredChannels[state.focusedChannelIdx] || state.allChannels[0];
     if (!ch) return;
     tuneLiveChannel(ch, true);
-    showToast('● Returned to Live TV: ' + ch.name);
+    showToast(t('toastReturnedLive') + ch.name);
   }
 
   function setGuideOpen(open) {
@@ -980,7 +1249,7 @@
 
       if (dom.osdModeBadge) {
         dom.osdModeBadge.className = 'mode-badge mode-badge--archive';
-        dom.osdModeBadge.textContent = '↺ ARCHIVE · ' + formatShortDay(p.s);
+        dom.osdModeBadge.textContent = t('osdArchiveBadge') + formatShortDay(p.s);
       }
       if (dom.osdProgTitle) {
         var scrubSuffix = state.pendingScrubOffsetSec !== null ? '  [Seek -> ' + formatClockWithSec(p.s + pos) + ']' : '';
@@ -989,16 +1258,15 @@
       if (dom.osdTimeStart) dom.osdTimeStart.textContent = formatClockWithSec(p.s + pos);
       if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = formatClock(p.e);
       if (dom.osdProgressFill) dom.osdProgressFill.style.width = pct.toFixed(1) + '%';
-      if (dom.osdNextInfo) dom.osdNextInfo.textContent = p.d || '3-Day Catchup Playback';
+      if (dom.osdNextInfo) dom.osdNextInfo.textContent = p.d || t('osdCatchupFallback');
       if (dom.osdControlsHint) {
-        dom.osdControlsHint.innerHTML =
-          '<kbd>◀▶</kbd> Scrub ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live TV';
+        dom.osdControlsHint.innerHTML = t('osdArchiveControlsHtml');
       }
     } else {
       var sched = getNowAndNextProgram(ch, nowSec);
       if (dom.osdModeBadge) {
         dom.osdModeBadge.className = 'mode-badge mode-badge--live';
-        dom.osdModeBadge.textContent = '● LIVE';
+        dom.osdModeBadge.textContent = t('osdLiveBadge');
       }
       if (sched.now) {
         var lDur = Math.max(60, sched.now.e - sched.now.s);
@@ -1009,19 +1277,18 @@
         if (dom.osdProgressFill) dom.osdProgressFill.style.width = lPct.toFixed(1) + '%';
         if (dom.osdNextInfo) {
           dom.osdNextInfo.textContent = sched.next
-            ? 'Up Next (' + formatClock(sched.next.s) + '): ' + sched.next.t
-            : (sched.now.d || 'Press ◀ Left to replay previous programs (3 days back)');
+            ? t('osdUpNext') + ' (' + formatClock(sched.next.s) + '): ' + sched.next.t
+            : (sched.now.d || t('osdLiveHintText'));
         }
       } else {
-        if (dom.osdProgTitle) dom.osdProgTitle.textContent = 'Live Broadcast';
+        if (dom.osdProgTitle) dom.osdProgTitle.textContent = t('osdLiveBroadcast');
         if (dom.osdTimeStart) dom.osdTimeStart.textContent = '--:--';
         if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = '--:--';
         if (dom.osdProgressFill) dom.osdProgressFill.style.width = '100%';
-        if (dom.osdNextInfo) dom.osdNextInfo.textContent = 'Press ◀ Left for 3-Day Replay · OK for Channel Guide';
+        if (dom.osdNextInfo) dom.osdNextInfo.textContent = t('osdLiveHintText');
       }
       if (dom.osdControlsHint) {
-        dom.osdControlsHint.innerHTML =
-          '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> 3-Day Replay &nbsp;·&nbsp; <kbd>▶</kbd> Info';
+        dom.osdControlsHint.innerHTML = t('osdLiveControlsHtml');
       }
     }
   }
@@ -1089,10 +1356,10 @@
     if (!ch) return;
     if (state.favorites.has(ch.key)) {
       state.favorites.delete(ch.key);
-      showToast('Removed from Favorites: ' + ch.name);
+      showToast(t('toastFavRemoved') + ch.name);
     } else {
       state.favorites.add(ch.key);
-      showToast('★ Added to Favorites: ' + ch.name);
+      showToast(t('toastFavAdded') + ch.name);
     }
     NS.Storage.saveFavorites(state.favorites);
     rebuildDisplayGroups();
@@ -1144,6 +1411,75 @@
     }
   }
 
+  function updateMuteButtonText() {
+    if (!dom.btnMuteToggle) return;
+    if (state.isMuted) {
+      dom.btnMuteToggle.textContent = state.isAutoplayBlocked ? t('clickForSound') : t('muted');
+      dom.btnMuteToggle.classList.add('btn-live');
+    } else {
+      dom.btnMuteToggle.textContent = t('soundOn');
+      dom.btnMuteToggle.classList.remove('btn-live');
+    }
+  }
+
+  function applyLanguage() {
+    var code = getLang();
+    var langOpt = getLangOption(code);
+    if (document.documentElement) {
+      document.documentElement.setAttribute('lang', code);
+    }
+    if (dom.searchInput) dom.searchInput.placeholder = t('searchPlaceholder');
+    if (dom.btnLiveNow) dom.btnLiveNow.textContent = t('returnToLive');
+    updateMuteButtonText();
+    if (dom.btnFavToggle) dom.btnFavToggle.textContent = t('favoriteBtn');
+    if (dom.btnUsbImport) dom.btnUsbImport.textContent = t('usbBtn');
+    if (dom.btnLangToggle) dom.btnLangToggle.textContent = langOpt.shortLabel;
+    if (dom.btnOpenSettings) dom.btnOpenSettings.textContent = t('settingsBtn');
+    if (dom.groupsHeaderTitle) dom.groupsHeaderTitle.textContent = t('categoriesTitle');
+    var cDays = (state.settings && state.settings.catchupDays) || 3;
+    var badgeTpl = cDays === 1 ? t('dayBackBadge') : t('daysBackBadge');
+    if (dom.programsCatchupHint) dom.programsCatchupHint.textContent = badgeTpl.replace('{d}', String(cDays));
+    if (dom.guideFooter) dom.guideFooter.innerHTML = t('footerHtml');
+
+    if (dom.settingsTitle) dom.settingsTitle.textContent = t('modalTitle');
+    if (dom.settingsSubtitle) dom.settingsSubtitle.innerHTML = t('modalSubtitleHtml');
+    if (dom.lblM3u) dom.lblM3u.innerHTML = t('lblM3uHtml');
+    if (dom.lblEpg) dom.lblEpg.innerHTML = t('lblEpgHtml');
+    if (dom.lblCycleMode) dom.lblCycleMode.textContent = t('lblCycleMode');
+    if (dom.lblCycleDays) dom.lblCycleDays.textContent = t('lblCycleDays');
+    if (dom.lblCycleOffset) dom.lblCycleOffset.textContent = t('lblCycleOffset');
+    if (dom.lblCycleLang) dom.lblCycleLang.textContent = t('lblCycleLang');
+    if (dom.usbHelpText) dom.usbHelpText.innerHTML = t('usbHelpHtml');
+    if (dom.btnModalUsb) dom.btnModalUsb.textContent = t('btnScanUsb');
+    if (dom.btnModalLocalfile) dom.btnModalLocalfile.textContent = t('btnLoadLocal');
+    if (dom.btnModalDemo) dom.btnModalDemo.textContent = t('btnLoadDemo');
+    if (dom.btnModalCancel) dom.btnModalCancel.textContent = t('btnCloseEsc');
+    if (dom.btnModalSave) dom.btnModalSave.textContent = t('btnSaveReload');
+
+    renderModalCycleButtons();
+    if (state.allChannels.length) {
+      rebuildDisplayGroups();
+      renderGroups(true);
+      applyChannelFilter(state.filteredChannels[state.focusedChannelIdx] ? state.filteredChannels[state.focusedChannelIdx].key : '', false);
+    }
+    if (state.osdVisible) {
+      updateOsdContent();
+    }
+  }
+
+  function cycleLanguage() {
+    var cur = getLang();
+    var idx = 0;
+    for (var i = 0; i < LANG_OPTS.length; i++) {
+      if (LANG_OPTS[i].value === cur) idx = i;
+    }
+    var nextLang = LANG_OPTS[(idx + 1) % LANG_OPTS.length].value;
+    state.settings = NS.Storage.saveSettings({ lang: nextLang });
+    state.modalLang = nextLang;
+    applyLanguage();
+    showToast(t('toastLangChanged'), 1800);
+  }
+
   // Modal Cycle Buttons Rendering
   function renderModalCycleButtons() {
     var modeObj = CATCHUP_MODES[0];
@@ -1151,10 +1487,13 @@
       if (CATCHUP_MODES[i].value === state.modalMode) modeObj = CATCHUP_MODES[i];
     }
     if (dom.btnCycleMode) dom.btnCycleMode.textContent = '▸ ' + modeObj.label;
-    if (dom.btnCycleDays) dom.btnCycleDays.textContent = '▸ ' + state.modalDays + (state.modalDays === 1 ? ' Day Back' : ' Days Back');
+    var dayTpl = state.modalDays === 1 ? t('dayBackBadge') : t('daysBackBadge');
+    if (dom.btnCycleDays) dom.btnCycleDays.textContent = '▸ ' + dayTpl.replace('↺ ', '').replace('{d}', String(state.modalDays));
     var offHr = state.modalOffsetMin / 60;
-    var offLabel = offHr === 0 ? '0h (Auto TZ)' : (offHr > 0 ? '+' + offHr + 'h' : offHr + 'h');
+    var offLabel = offHr === 0 ? t('autoTz') : (offHr > 0 ? '+' + offHr + 'h' : offHr + 'h');
     if (dom.btnCycleOffset) dom.btnCycleOffset.textContent = '▸ ' + offLabel;
+    var mLangOpt = getLangOption(state.modalLang || getLang());
+    if (dom.btnCycleLang) dom.btnCycleLang.textContent = '▸ ' + mLangOpt.shortLabel + ' · ' + mLangOpt.label;
   }
 
   function openSettingsModal() {
@@ -1167,6 +1506,7 @@
     state.modalMode = state.settings.catchupMode || 'auto';
     state.modalDays = Number(state.settings.catchupDays) || 3;
     state.modalOffsetMin = Number(state.settings.epgOffsetMin) || 0;
+    state.modalLang = getLang();
     renderModalCycleButtons();
 
     if (dom.remotePushHint) {
@@ -1451,6 +1791,7 @@
     var isFastForward = key === 'MediaFastForward' || code === 417;
     var isRedFav = key === 'ColorF0Red' || code === 403 || ((key === 'f' || key === 'F' || code === 70) && !editingInput);
     var isGreenCatchup = key === 'ColorF1Green' || code === 404 || key === 'Guide' || code === 458 || ((key === 'g' || key === 'G' || code === 71) && !editingInput);
+    var isYellowLang = key === 'ColorF2Yellow' || code === 405 || ((key === 'l' || key === 'L' || code === 76) && !editingInput);
     var isBlueSettings = key === 'ColorF3Blue' || code === 406 || ((key === 's' || key === 'S' || code === 83) && !editingInput);
     var isInfo = key === 'Info' || code === 457 || ((key === 'i' || key === 'I' || code === 73) && !editingInput);
     var isMuteKey = !editingInput && (key === 'm' || key === 'M' || code === 77 || key === 'AudioVolumeMute' || code === 449);
@@ -1491,7 +1832,7 @@
     if (isMuteKey) {
       e.preventDefault();
       var nowMuted = player.toggleMute();
-      showToast(nowMuted ? '🔇 Muted' : '🔊 Sound On', 1500);
+      showToast(nowMuted ? t('muted') : t('soundOn'), 1500);
       return;
     }
 
@@ -1499,6 +1840,12 @@
       e.preventDefault();
       var trackLabel = player.cycleAudioTrack();
       showToast(trackLabel ? '🔊 Audio Track: ' + trackLabel : 'Single audio track on this stream', 2000);
+      return;
+    }
+
+    if (isYellowLang) {
+      e.preventDefault();
+      cycleLanguage();
       return;
     }
 
@@ -1517,7 +1864,7 @@
     if (isPlayPause) {
       e.preventDefault();
       var paused = player.togglePause();
-      showToast(paused ? '⏸ Paused' : '▶ Playing', 1400);
+      showToast(paused ? t('toastPaused') : t('toastPlaying'), 1400);
       showOsd(3500);
       return;
     }
@@ -1557,7 +1904,7 @@
         if (isEnter) {
           e.preventDefault();
           var pState = player.togglePause();
-          showToast(pState ? '⏸ Archive Paused' : '▶ Archive Playing', 1400);
+          showToast(pState ? t('toastArchPaused') : t('toastArchPlaying'), 1400);
           showOsd(4500);
           return;
         }
@@ -1626,7 +1973,7 @@
           }
         } else {
           state.backExitArmedAt = nowMs;
-          showToast('Press BACK again to exit vertIPTV', 2200);
+          showToast(t('toastBackExit'), 2200);
         }
       }
       return;
@@ -1866,11 +2213,13 @@
     dom.btnMuteToggle = $('btn-mute-toggle');
     dom.btnFavToggle = $('btn-fav-toggle');
     dom.btnUsbImport = $('btn-usb-import');
+    dom.btnLangToggle = $('btn-lang-toggle');
     dom.btnOpenSettings = $('btn-open-settings');
     dom.epgSyncPill = $('epg-sync-pill');
     dom.wallClock = $('wall-clock');
 
     dom.paneGroups = $('pane-groups');
+    dom.groupsHeaderTitle = $('groups-header-title');
     dom.groupsCount = $('groups-count');
     dom.groupsList = $('groups-list');
 
@@ -1883,8 +2232,10 @@
 
     dom.panePrograms = $('pane-programs');
     dom.programsChannelTitle = $('programs-channel-title');
+    dom.programsCatchupHint = $('programs-catchup-hint');
     dom.dayTabs = $('day-tabs');
     dom.programsList = $('programs-list');
+    dom.guideFooter = $('guide-footer');
 
     dom.osdBar = $('osd-bar');
     dom.osdChNum = $('osd-ch-num');
@@ -1900,11 +2251,21 @@
 
     dom.settingsModal = $('settings-modal');
     dom.settingsCard = $('settings-card');
+    dom.settingsTitle = $('settings-title');
+    dom.settingsSubtitle = $('settings-subtitle');
+    dom.lblM3u = $('lbl-m3u');
+    dom.lblEpg = $('lbl-epg');
+    dom.lblCycleMode = $('lbl-cycle-mode');
+    dom.lblCycleDays = $('lbl-cycle-days');
+    dom.lblCycleOffset = $('lbl-cycle-offset');
+    dom.lblCycleLang = $('lbl-cycle-lang');
+    dom.usbHelpText = $('usb-help-text');
     dom.inpM3u = $('inp-m3u');
     dom.inpEpg = $('inp-epg');
     dom.btnCycleMode = $('btn-cycle-mode');
     dom.btnCycleDays = $('btn-cycle-days');
     dom.btnCycleOffset = $('btn-cycle-offset');
+    dom.btnCycleLang = $('btn-cycle-lang');
     dom.btnModalUsb = $('btn-modal-usb');
     dom.btnModalLocalfile = $('btn-modal-localfile');
     dom.btnModalDemo = $('btn-modal-demo');
@@ -2010,12 +2371,15 @@
     dom.btnLiveNow.addEventListener('click', returnToLive);
     dom.btnMuteToggle.addEventListener('click', function () {
       var nowMuted = player.toggleMute();
-      showToast(nowMuted ? '🔇 Muted' : '🔊 Sound On', 1500);
+      showToast(nowMuted ? t('muted') : t('soundOn'), 1500);
     });
     dom.btnFavToggle.addEventListener('click', toggleFavoriteOnHighlighted);
     dom.btnUsbImport.addEventListener('click', function () {
       handleUsbImport(false);
     });
+    if (dom.btnLangToggle) {
+      dom.btnLangToggle.addEventListener('click', cycleLanguage);
+    }
     dom.btnOpenSettings.addEventListener('click', openSettingsModal);
 
     // Cycle buttons inside Settings Modal
@@ -2039,6 +2403,12 @@
       state.modalOffsetMin = EPG_OFFSET_OPTS[(idx + 1) % EPG_OFFSET_OPTS.length];
       renderModalCycleButtons();
     });
+
+    if (dom.btnCycleLang) {
+      dom.btnCycleLang.addEventListener('click', function () {
+        cycleLanguage();
+      });
+    }
 
     dom.btnModalCancel.addEventListener('click', closeSettingsModal);
     dom.btnModalUsb.addEventListener('click', function () {
@@ -2083,13 +2453,15 @@
         epgUrl: dom.inpEpg.value.trim(),
         catchupMode: state.modalMode,
         catchupDays: state.modalDays,
-        epgOffsetMin: state.modalOffsetMin
+        epgOffsetMin: state.modalOffsetMin,
+        lang: state.modalLang || getLang()
       };
       state.settings = NS.Storage.saveSettings(nextCfg);
       syncSettingsToCompanionServer(nextCfg);
       state.playingChannelKey = '';
       closeSettingsModal();
-      showToast('✓ Saved playlist & EPG settings');
+      applyLanguage();
+      showToast(t('toastSavedSettings'));
       loadConfiguredUrls(true);
     });
 
@@ -2118,6 +2490,7 @@
     state.settings = NS.Storage.loadSettings();
     state.favorites = NS.Storage.loadFavorites();
     state.recents = NS.Storage.loadRecents();
+    applyLanguage();
 
     player = NS.Player.createPlayer({
       avElement: dom.avPlayer,
@@ -2125,7 +2498,9 @@
       onState: function (st, pct) {
         if (!dom.streamStatus) return;
         if (st === 'buffering') {
-          dom.streamStatusText.textContent = pct ? 'Buffering ' + pct + '%...' : 'Connecting stream...';
+          dom.streamStatusText.textContent = pct
+            ? t('bufferingPct').replace('{p}', String(pct))
+            : t('connectingStream');
           dom.streamStatus.classList.remove('is-hidden');
         } else {
           dom.streamStatus.classList.add('is-hidden');
@@ -2144,14 +2519,9 @@
         showToast(msg, 4000);
       },
       onMuteChange: function (m) {
-        if (!dom.btnMuteToggle) return;
-        if (m.muted) {
-          dom.btnMuteToggle.textContent = m.autoplayBlocked ? '🔇 Click / Key for Sound' : '🔇 Muted';
-          dom.btnMuteToggle.classList.add('btn-live');
-        } else {
-          dom.btnMuteToggle.textContent = '🔊 Sound On';
-          dom.btnMuteToggle.classList.remove('btn-live');
-        }
+        state.isMuted = !!m.muted;
+        state.isAutoplayBlocked = !!m.autoplayBlocked;
+        updateMuteButtonText();
       }
     });
 
@@ -2166,6 +2536,7 @@
     NS.Storage.loadSettingsGuaranteed().then(function (guaranteedSettings) {
       state.settings = guaranteedSettings;
       state.favorites = NS.Storage.loadFavorites();
+      applyLanguage();
       return loadConfiguredUrls(false);
     }).then(function () {
       if (!state.settings.m3uUrl && NS.UsbLoader.hasTizenFs()) {

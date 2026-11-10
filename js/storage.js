@@ -20,7 +20,8 @@
     catchupDays: 3,
     epgOffsetMin: 0,
     preferEngine: 'auto', // 'auto' | 'avplay' | 'hls'
-    useCorsProxy: false
+    useCorsProxy: false,
+    lang: 'en' // 'en' | 'de' | 'pl'
   };
 
   function safeJsonParse(raw, fallback) {
@@ -42,6 +43,9 @@
     }
     merged.catchupDays = Math.max(1, Math.min(14, Number(merged.catchupDays) || 3));
     merged.epgOffsetMin = Number(merged.epgOffsetMin) || 0;
+    if (merged.lang !== 'en' && merged.lang !== 'de' && merged.lang !== 'pl') {
+      merged.lang = 'en';
+    }
     return merged;
   }
 
