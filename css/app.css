@@ -975,6 +975,12 @@ kbd {
 }
 
 .osd-btn {
+  display: -webkit-inline-flex;
+  display: inline-flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
   padding: 7px 14px;
   border-radius: 9px;
   border: 1.5px solid rgba(148, 163, 184, 0.25);
@@ -982,8 +988,24 @@ kbd {
   color: #e2e8f0;
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.osd-ico {
+  width: 15px;
+  height: 15px;
+  margin-right: 7px;
+  -webkit-flex: none;
+  flex: none;
+  pointer-events: none;
+  fill: currentColor;
+}
+
+.osd-ico--end {
+  margin-right: 0;
+  margin-left: 7px;
 }
 
 .osd-btn--live {

@@ -92,10 +92,10 @@
         '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> EPG &nbsp;·&nbsp; <kbd>▶</kbd> Player Controls',
       osdInteractiveControlsHtml:
         '<kbd>◀▶</kbd> Select / Scrub &nbsp;·&nbsp; <kbd>▲▼</kbd> Bar / Buttons &nbsp;·&nbsp; <kbd>OK</kbd> Confirm &nbsp;·&nbsp; <kbd>BACK</kbd> Close',
-      osdBtnRestart: '⏮ From Start',
-      osdBtnPause: '⏯ Pause / Play',
-      osdBtnLive: '● Live',
-      osdBtnGuide: '☰ Guide',
+      osdBtnRestart: 'From Start',
+      osdBtnPause: 'Pause / Play',
+      osdBtnLive: 'Live',
+      osdBtnGuide: 'Guide',
       modalTitle: 'Playlist & EPG Setup',
       modalSubtitleHtml:
         'Navigate with <strong>Arrows</strong>, press <strong>OK</strong> on a text box to edit (and <strong>OK / Esc</strong> when done), or import directly from a USB pendrive.',
@@ -179,10 +179,10 @@
         '<kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Sender &nbsp;·&nbsp; <kbd>◀</kbd> EPG &nbsp;·&nbsp; <kbd>▶</kbd> Steuerung',
       osdInteractiveControlsHtml:
         '<kbd>◀▶</kbd> Auswahl / Spulen &nbsp;·&nbsp; <kbd>▲▼</kbd> Leiste / Tasten &nbsp;·&nbsp; <kbd>OK</kbd> OK &nbsp;·&nbsp; <kbd>BACK</kbd> Schließen',
-      osdBtnRestart: '⏮ Vom Anfang',
-      osdBtnPause: '⏯ Pause / Play',
-      osdBtnLive: '● Live',
-      osdBtnGuide: '☰ Guide',
+      osdBtnRestart: 'Vom Anfang',
+      osdBtnPause: 'Pause / Play',
+      osdBtnLive: 'Live',
+      osdBtnGuide: 'Guide',
       modalTitle: 'Playlist & EPG Einstellungen',
       modalSubtitleHtml:
         'Mit <strong>Pfeiltasten</strong> navigieren, <strong>OK</strong> im Textfeld zum Tippen drücken (und <strong>OK / Esc</strong> zum Beenden) oder direkt vom USB-Stick laden.',
@@ -266,10 +266,10 @@
         '<kbd>OK</kbd> Przewodnik &nbsp;·&nbsp; <kbd>▲▼</kbd> Kanał &nbsp;·&nbsp; <kbd>◀</kbd> Program TV &nbsp;·&nbsp; <kbd>▶</kbd> Sterowanie',
       osdInteractiveControlsHtml:
         '<kbd>◀▶</kbd> Wybór / Przewijanie &nbsp;·&nbsp; <kbd>▲▼</kbd> Pasek / Przyciski &nbsp;·&nbsp; <kbd>OK</kbd> Zatwierdź &nbsp;·&nbsp; <kbd>BACK</kbd> Zamknij',
-      osdBtnRestart: '⏮ Od początku',
-      osdBtnPause: '⏯ Pauza / Start',
-      osdBtnLive: '● Na żywo',
-      osdBtnGuide: '☰ Przewodnik',
+      osdBtnRestart: 'Od początku',
+      osdBtnPause: 'Pauza / Start',
+      osdBtnLive: 'Na żywo',
+      osdBtnGuide: 'Przewodnik',
       modalTitle: 'Ustawienia listy M3U i EPG',
       modalSubtitleHtml:
         'Poruszaj się <strong>Strzałkami</strong>, naciśnij <strong>OK</strong> na polu tekstowym aby pisać (oraz <strong>OK / Esc</strong> po zakończeniu) lub wczytaj listę z pendrive USB.',
@@ -1617,10 +1617,10 @@
     if (dom.btnModalCancel) dom.btnModalCancel.textContent = t('btnCloseEsc');
     if (dom.btnModalSave) dom.btnModalSave.textContent = t('btnSaveReload');
 
-    if (dom.osdBtnRestart) dom.osdBtnRestart.textContent = t('osdBtnRestart');
-    if (dom.osdBtnPlaypause) dom.osdBtnPlaypause.textContent = t('osdBtnPause');
-    if (dom.osdBtnGolive) dom.osdBtnGolive.textContent = t('osdBtnLive');
-    if (dom.osdBtnGuide) dom.osdBtnGuide.textContent = t('osdBtnGuide');
+    if (dom.osdLblRestart) dom.osdLblRestart.textContent = t('osdBtnRestart');
+    if (dom.osdLblPlaypause) dom.osdLblPlaypause.textContent = t('osdBtnPause');
+    if (dom.osdLblGolive) dom.osdLblGolive.textContent = t('osdBtnLive');
+    if (dom.osdLblGuide) dom.osdLblGuide.textContent = t('osdBtnGuide');
 
     renderModalCycleButtons();
     if (state.allChannels.length) {
@@ -2499,6 +2499,10 @@
     dom.osdBtnPlaypause = $('osd-btn-playpause');
     dom.osdBtnGolive = $('osd-btn-golive');
     dom.osdBtnGuide = $('osd-btn-guide');
+    dom.osdLblRestart = $('osd-lbl-restart');
+    dom.osdLblPlaypause = $('osd-lbl-playpause');
+    dom.osdLblGolive = $('osd-lbl-golive');
+    dom.osdLblGuide = $('osd-lbl-guide');
     dom.osdNextInfo = $('osd-next-info');
     dom.osdControlsHint = $('osd-controls-hint');
 
