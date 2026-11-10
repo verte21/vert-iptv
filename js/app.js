@@ -45,6 +45,26 @@
     favorites: new Set(),
     recents: [],
     allChannels: [],
+    channelByKey: Object.create(null),
+    channelsByGroup: Object.create(null),
+    filterGen: 0,
+    groupsRenderGen: 0,
+    groupsRenderedGen: -1,
+    groupsRenderedSelected: -1,
+    groupsRenderedFocused: -1,
+    poolFilterGen: -1,
+    poolStartIdx: -1,
+    poolEndIdx: -1,
+    poolFocusedIdx: -1,
+    poolActivePane: false,
+    poolPlayingKey: '',
+    dayTabsRenderedRef: null,
+    dayTabsRenderedSelected: -1,
+    dayTabsRenderedFocused: false,
+    programsRenderedRef: null,
+    programsRenderedChannelKey: '',
+    programsRenderedPlayingArchive: -1,
+    programsRenderedFocused: -2,
     rawGroups: [],
     displayGroups: [],
     filteredChannels: [],
@@ -245,6 +265,26 @@
     return { now: null, next: null };
   }
 
+  function indexChannelsState() {
+    var byKey = Object.create(null);
+    var byGroup = Object.create(null);
+    var all = state.allChannels;
+    for (var i = 0; i < all.length; i++) {
+      var c = all[i];
+      byKey[c.key] = c;
+      var grpName = c.group || 'General';
+      var gList = byGroup[grpName];
+      if (!gList) {
+        gList = [];
+        byGroup[grpName] = gList;
+      }
+      gList.push(c);
+    }
+    state.channelByKey = byKey;
+    state.channelsByGroup = byGroup;
+    state.filterGen = (state.filterGen || 0) + 1;
+  }
+
   function rebuildDisplayGroups() {
     var list = [
       { id: '__all__', name: 'All Channels', count: state.allChannels.length },
@@ -256,12 +296,13 @@
       list.push({ id: 'grp:' + g.name, name: g.name, count: g.count });
     }
     state.displayGroups = list;
+    state.groupsRenderGen = (state.groupsRenderGen || 0) + 1;
     if (state.selectedGroupIdx >= list.length) state.selectedGroupIdx = 0;
     if (state.focusedGroupIdx >= list.length) state.focusedGroupIdx = 0;
     if (dom.groupsCount) dom.groupsCount.textContent = String(state.rawGroups.length);
   }
 
-  function applyChannelFilter(preserveChannelKey) {
+  function applyChannelFilter(preserveChannelKey, deferProgramPreview) {
     var grp = state.displayGroups[state.selectedGroupIdx] || state.displayGroups[0];
     var q = state.searchQuery.trim().toLowerCase();
     var base = [];
@@ -273,27 +314,24 @@
         return state.favorites.has(c.key) || (c.tvgId && state.favorites.has(c.tvgId));
       });
     } else if (grp.id === '__recent__') {
-      var byKey = Object.create(null);
-      for (var i = 0; i < state.allChannels.length; i++) {
-        byKey[state.allChannels[i].key] = state.allChannels[i];
-      }
       for (var r = 0; r < state.recents.length; r++) {
-        if (byKey[state.recents[r]]) base.push(byKey[state.recents[r]]);
+        var rCh = state.channelByKey[state.recents[r]];
+        if (rCh) base.push(rCh);
       }
     } else {
-      var targetGroup = grp.name;
-      base = state.allChannels.filter(function (c) {
-        return c.group === targetGroup;
-      });
+      base = (state.channelsByGroup && state.channelsByGroup[grp.name]) || [];
     }
 
     if (q) {
       base = base.filter(function (c) {
-        return c.name.toLowerCase().indexOf(q) !== -1 || String(c.num).indexOf(q) === 0;
+        var ln = c._lowerName !== undefined ? c._lowerName : (c._lowerName = (c.name || '').toLowerCase());
+        var ns = c._numStr !== undefined ? c._numStr : (c._numStr = String(c.num || ''));
+        return ln.indexOf(q) !== -1 || ns.indexOf(q) === 0;
       });
     }
 
     state.filteredChannels = base;
+    state.filterGen = (state.filterGen || 0) + 1;
     if (dom.channelsHeaderTitle) {
       dom.channelsHeaderTitle.textContent = q ? 'Search: "' + state.searchQuery + '"' : (grp ? grp.name : 'Channels');
     }
@@ -317,18 +355,55 @@
       dom.channelsSpacer.style.height = base.length * ROW_HEIGHT + 'px';
     }
     scrollChannelIntoView(state.focusedChannelIdx, true);
-    renderChannelsVirtual();
-    refreshProgramsForHighlightedChannel(false);
+    renderChannelsVirtual(true);
+    if (deferProgramPreview) {
+      scheduleProgramPanePreview();
+    } else {
+      refreshProgramsForHighlightedChannel(false);
+    }
   }
 
-  function renderGroups() {
+  function renderGroups(forceFull) {
     if (!dom.groupsList) return;
+    var effFocused = state.activePane === 'groups' ? state.focusedGroupIdx : -1;
+
+    if (
+      !forceFull &&
+      state.groupsRenderedGen === state.groupsRenderGen &&
+      state.groupsRenderedSelected === state.selectedGroupIdx &&
+      state.groupsRenderedFocused === effFocused
+    ) {
+      return;
+    }
+
+    if (
+      !forceFull &&
+      state.groupsRenderedGen === state.groupsRenderGen &&
+      dom.groupsList.children &&
+      dom.groupsList.children.length === state.displayGroups.length
+    ) {
+      var rows = dom.groupsList.children;
+      for (var r = 0; r < rows.length; r++) {
+        var rCls = 'group-row';
+        if (r === state.selectedGroupIdx) rCls += ' is-selected';
+        if (r === effFocused) rCls += ' is-focused';
+        rows[r].className = rCls;
+        rows[r].setAttribute('aria-selected', String(r === state.selectedGroupIdx));
+      }
+      state.groupsRenderedSelected = state.selectedGroupIdx;
+      state.groupsRenderedFocused = effFocused;
+      if (effFocused >= 0 && rows[effFocused]) {
+        scrollChildIntoContainer(dom.groupsList, rows[effFocused], false);
+      }
+      return;
+    }
+
     var html = '';
     for (var i = 0; i < state.displayGroups.length; i++) {
       var g = state.displayGroups[i];
       var cls = 'group-row';
       if (i === state.selectedGroupIdx) cls += ' is-selected';
-      if (state.activePane === 'groups' && i === state.focusedGroupIdx) cls += ' is-focused';
+      if (i === effFocused) cls += ' is-focused';
       html +=
         '<div class="' + cls + '" role="option" data-group-idx="' + i + '" aria-selected="' + (i === state.selectedGroupIdx) + '">' +
         '<span class="group-name">' + escapeHtml(g.name) + '</span>' +
@@ -336,6 +411,9 @@
         '</div>';
     }
     dom.groupsList.innerHTML = html;
+    state.groupsRenderedGen = state.groupsRenderGen;
+    state.groupsRenderedSelected = state.selectedGroupIdx;
+    state.groupsRenderedFocused = effFocused;
 
     if (state.activePane === 'groups') {
       var activeNode = dom.groupsList.querySelector('[data-group-idx="' + state.focusedGroupIdx + '"]');
@@ -364,13 +442,16 @@
     return state.favorites.has(ch.key) || (ch.tvgId && state.favorites.has(ch.tvgId));
   }
 
-  function renderChannelsVirtual() {
+  function renderChannelsVirtual(forceFull) {
     var vp = dom.channelsViewport;
     var pool = dom.channelsPool;
     if (!vp || !pool) return;
 
     var total = state.filteredChannels.length;
     if (!total) {
+      state.poolFilterGen = state.filterGen;
+      state.poolStartIdx = 0;
+      state.poolEndIdx = 0;
       pool.style.webkitTransform = 'translate3d(0,0,0)';
       pool.style.transform = 'translate3d(0,0,0)';
       pool.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:15px;">No channels match this filter.</div>';
@@ -379,9 +460,53 @@
 
     var scrollTop = vp.scrollTop;
     var viewH = vp.clientHeight || 720;
-    var startIdx = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 4);
-    var visibleCount = Math.ceil(viewH / ROW_HEIGHT) + 8;
+    var rawFirst = Math.floor(scrollTop / ROW_HEIGHT);
+    var startIdx = Math.max(0, Math.floor((rawFirst - 4) / 6) * 6);
+    var visibleCount = Math.ceil(viewH / ROW_HEIGHT) + 16;
     var endIdx = Math.min(total, startIdx + visibleCount);
+    var isPaneCh = state.activePane === 'channels';
+
+    // Fast path 1: Exact same virtual window & focus state (e.g. duplicate scroll event after keydown)
+    if (
+      !forceFull &&
+      state.poolFilterGen === state.filterGen &&
+      state.poolStartIdx === startIdx &&
+      state.poolEndIdx === endIdx &&
+      state.poolFocusedIdx === state.focusedChannelIdx &&
+      state.poolActivePane === isPaneCh &&
+      state.poolPlayingKey === state.playingChannelKey
+    ) {
+      return;
+    }
+
+    // Fast path 2: Same virtual window [startIdx, endIdx), only focus/playing highlight changed -> update classes in-place without destroying <img> logos!
+    if (
+      !forceFull &&
+      state.poolFilterGen === state.filterGen &&
+      state.poolStartIdx === startIdx &&
+      state.poolEndIdx === endIdx &&
+      pool.children &&
+      pool.children.length === endIdx - startIdx
+    ) {
+      var children = pool.children;
+      for (var cIdx = 0; cIdx < children.length; cIdx++) {
+        var itemIdx = startIdx + cIdx;
+        var rowCh = state.filteredChannels[itemIdx];
+        var rowFocused = isPaneCh && itemIdx === state.focusedChannelIdx;
+        var rowSelected = itemIdx === state.focusedChannelIdx;
+        var rowPlaying = rowCh && rowCh.key === state.playingChannelKey;
+        var rowCls = 'ch-row';
+        if (rowPlaying) rowCls += ' is-playing';
+        if (rowSelected && !rowFocused) rowCls += ' is-selected';
+        if (rowFocused) rowCls += ' is-focused';
+        children[cIdx].className = rowCls;
+        children[cIdx].setAttribute('aria-selected', String(rowSelected));
+      }
+      state.poolFocusedIdx = state.focusedChannelIdx;
+      state.poolActivePane = isPaneCh;
+      state.poolPlayingKey = state.playingChannelKey;
+      return;
+    }
 
     var translateVal = 'translate3d(0,' + startIdx * ROW_HEIGHT + 'px,0)';
     pool.style.webkitTransform = translateVal;
@@ -392,7 +517,7 @@
 
     for (var i = startIdx; i < endIdx; i++) {
       var ch = state.filteredChannels[i];
-      var isFocused = state.activePane === 'channels' && i === state.focusedChannelIdx;
+      var isFocused = isPaneCh && i === state.focusedChannelIdx;
       var isSelected = i === state.focusedChannelIdx;
       var isPlaying = ch.key === state.playingChannelKey;
 
@@ -433,6 +558,12 @@
     }
 
     pool.innerHTML = html;
+    state.poolFilterGen = state.filterGen;
+    state.poolStartIdx = startIdx;
+    state.poolEndIdx = endIdx;
+    state.poolFocusedIdx = state.focusedChannelIdx;
+    state.poolActivePane = isPaneCh;
+    state.poolPlayingKey = state.playingChannelKey;
   }
 
   function buildDayTabsForChannel(channel) {
@@ -544,14 +675,24 @@
     renderProgramsList(true);
   }
 
-  function renderDayTabs() {
+  function renderDayTabs(forceFull) {
     if (!dom.dayTabs) return;
+    var isDaysFocused = state.activePane === 'programs' && state.programSubFocus === 'days';
+    if (
+      !forceFull &&
+      state.dayTabsRenderedRef === state.dayTabs &&
+      state.dayTabsRenderedSelected === state.selectedDayOffset &&
+      state.dayTabsRenderedFocused === isDaysFocused
+    ) {
+      return;
+    }
+
     var html = '';
     for (var i = 0; i < state.dayTabs.length; i++) {
       var tab = state.dayTabs[i];
       var cls = 'day-tab';
       if (i === state.selectedDayOffset) cls += ' is-active';
-      if (state.activePane === 'programs' && state.programSubFocus === 'days' && i === state.selectedDayOffset) {
+      if (isDaysFocused && i === state.selectedDayOffset) {
         cls += ' is-focused';
       }
       html +=
@@ -560,18 +701,81 @@
         '</button>';
     }
     dom.dayTabs.innerHTML = html;
+    state.dayTabsRenderedRef = state.dayTabs;
+    state.dayTabsRenderedSelected = state.selectedDayOffset;
+    state.dayTabsRenderedFocused = isDaysFocused;
   }
 
-  function renderProgramsList(centerFocused) {
+  function renderProgramsList(centerFocused, forceFull) {
     if (!dom.programsList) return;
     var progs = state.currentDayPrograms;
     if (!progs.length) {
+      state.programsRenderedRef = progs;
+      state.programsRenderedFocused = -1;
       dom.programsList.innerHTML = '<div style="padding:18px;color:#94a3b8;">No schedule entries available.</div>';
       return;
     }
 
-    var nowSec = Math.floor(Date.now() / 1000);
     var ch = state.filteredChannels[state.focusedChannelIdx];
+    var chKey = ch ? ch.key : '';
+    var archiveStart =
+      state.playbackMode === 'archive' &&
+      ch &&
+      ch.key === state.playingChannelKey &&
+      state.activeArchiveProgram
+        ? state.activeArchiveProgram.s
+        : -1;
+    var effProgFocus =
+      state.activePane === 'programs' && state.programSubFocus === 'list' ? state.focusedProgramIdx : -1;
+
+    // Fast path 1: Same program list, channel, archive state, and focus index
+    if (
+      !forceFull &&
+      state.programsRenderedRef === progs &&
+      state.programsRenderedChannelKey === chKey &&
+      state.programsRenderedPlayingArchive === archiveStart &&
+      state.programsRenderedFocused === effProgFocus
+    ) {
+      if (centerFocused) {
+        var existingTarget = dom.programsList.querySelector('[data-prog-idx="' + state.focusedProgramIdx + '"]');
+        scrollChildIntoContainer(dom.programsList, existingTarget, true);
+      }
+      return;
+    }
+
+    // Fast path 2: Same program list, only focus index changed -> update classes in-place
+    if (
+      !forceFull &&
+      state.programsRenderedRef === progs &&
+      state.programsRenderedChannelKey === chKey &&
+      state.programsRenderedPlayingArchive === archiveStart &&
+      dom.programsList.children &&
+      dom.programsList.children.length === progs.length
+    ) {
+      var nowFast = Math.floor(Date.now() / 1000);
+      var pRows = dom.programsList.children;
+      for (var k = 0; k < pRows.length; k++) {
+        var pk = progs[k];
+        var kLive = nowFast >= pk.s && nowFast < pk.e;
+        var kFuture = pk.s > nowFast;
+        var kFocused = k === effProgFocus;
+        var kArch = archiveStart !== -1 && archiveStart === pk.s;
+        var kCls = 'prog-item';
+        if (k >= 10 && Math.abs(k - state.focusedProgramIdx) > 8) kCls += ' prog-item--deferred';
+        if (kLive) kCls += ' is-live';
+        if (kFuture) kCls += ' is-future';
+        if (kArch) kCls += ' is-playing-archive';
+        if (kFocused) kCls += ' is-focused';
+        pRows[k].className = kCls;
+        pRows[k].setAttribute('aria-selected', String(kFocused));
+      }
+      state.programsRenderedFocused = effProgFocus;
+      var fastTarget = pRows[state.focusedProgramIdx] || dom.programsList.querySelector('[data-prog-idx="' + state.focusedProgramIdx + '"]');
+      scrollChildIntoContainer(dom.programsList, fastTarget, !!centerFocused);
+      return;
+    }
+
+    var nowSec = Math.floor(Date.now() / 1000);
     var html = '';
 
     for (var i = 0; i < progs.length; i++) {
@@ -579,13 +783,8 @@
       var isLive = nowSec >= p.s && nowSec < p.e;
       var isPast = p.e <= nowSec;
       var isFuture = p.s > nowSec;
-      var isFocused = state.activePane === 'programs' && state.programSubFocus === 'list' && i === state.focusedProgramIdx;
-      var isPlayingThisArchive =
-        state.playbackMode === 'archive' &&
-        ch &&
-        ch.key === state.playingChannelKey &&
-        state.activeArchiveProgram &&
-        state.activeArchiveProgram.s === p.s;
+      var isFocused = i === effProgFocus;
+      var isPlayingThisArchive = archiveStart !== -1 && archiveStart === p.s;
 
       var cls = 'prog-item';
       if (i >= 10 && Math.abs(i - state.focusedProgramIdx) > 8) cls += ' prog-item--deferred';
@@ -617,6 +816,10 @@
     }
 
     dom.programsList.innerHTML = html;
+    state.programsRenderedRef = progs;
+    state.programsRenderedChannelKey = chKey;
+    state.programsRenderedPlayingArchive = archiveStart;
+    state.programsRenderedFocused = effProgFocus;
 
     var target = dom.programsList.querySelector('[data-prog-idx="' + state.focusedProgramIdx + '"]');
     scrollChildIntoContainer(dom.programsList, target, !!centerFocused);
@@ -651,6 +854,8 @@
   }
 
   function getChannelByKey(key) {
+    if (!key) return null;
+    if (state.channelByKey && state.channelByKey[key]) return state.channelByKey[key];
     for (var i = 0; i < state.allChannels.length; i++) {
       if (state.allChannels[i].key === key) return state.allChannels[i];
     }
@@ -880,7 +1085,7 @@
     NS.Storage.saveFavorites(state.favorites);
     rebuildDisplayGroups();
     renderGroups();
-    renderChannelsVirtual();
+    renderChannelsVirtual(true);
   }
 
   function handleNumberKey(digit) {
@@ -978,6 +1183,7 @@
     state.rawGroups = bundle.groups || [];
     state.epgByBucket = bundle.epgByBucket || Object.create(null);
     state.isDemoData = !!isDemo;
+    indexChannelsState();
 
     if (dom.playlistBadge) dom.playlistBadge.textContent = badgeLabel;
 
@@ -1036,7 +1242,7 @@
         if (dom.epgSyncPill) {
           dom.epgSyncPill.textContent = 'EPG: ' + epgRes.matchedChannels + ' ch (' + epgRes.totalPrograms + ' shows)';
         }
-        renderChannelsVirtual();
+        renderChannelsVirtual(true);
         refreshProgramsForHighlightedChannel(false);
         persistActiveSnapshot('', epgUrl);
       })
@@ -1076,7 +1282,7 @@
         ).then(function (epgRes) {
           state.epgByBucket = epgRes.epgByBucket;
           if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'EPG: ' + epgRes.matchedChannels + ' ch';
-          renderChannelsVirtual();
+          renderChannelsVirtual(true);
           refreshProgramsForHighlightedChannel(false);
           persistActiveSnapshot(sourceLabel, '');
         });
@@ -1133,6 +1339,7 @@
           state.allChannels = parsed.channels;
           state.rawGroups = parsed.groups;
           state.isDemoData = false;
+          indexChannelsState();
           if (dom.playlistBadge) dom.playlistBadge.textContent = parsed.channels.length + ' Channels';
 
           rebuildDisplayGroups();
@@ -1440,7 +1647,7 @@
         } else {
           state.focusedGroupIdx--;
           state.selectedGroupIdx = state.focusedGroupIdx;
-          applyChannelFilter('');
+          applyChannelFilter('', true);
           renderGroups();
         }
       } else if (isDown) {
@@ -1448,13 +1655,13 @@
         if (state.focusedGroupIdx < state.displayGroups.length - 1) {
           state.focusedGroupIdx++;
           state.selectedGroupIdx = state.focusedGroupIdx;
-          applyChannelFilter('');
+          applyChannelFilter('', true);
           renderGroups();
         }
       } else if (isRight || isEnter) {
         e.preventDefault();
         state.selectedGroupIdx = state.focusedGroupIdx;
-        applyChannelFilter('');
+        applyChannelFilter('', false);
         setActivePane('channels');
       }
       return;

@@ -355,6 +355,23 @@ https://arch.example.com/ch/custom.ch/live.m3u8
     }
   }
 
+  console.log('8. Benchmarking 50,000-programme XMLTV (with unmatched channels)...');
+  {
+    const xmlBig = ['<?xml version="1.0" encoding="UTF-8"?><tv>'];
+    const tStartStr = fmtXmlTime(nowSec - 1800);
+    const tStopStr = fmtXmlTime(nowSec + 1800);
+    for (let i = 1; i <= 50000; i++) {
+      const chId = i % 3 === 0 ? `ch${(i % 500) + 1}` : `foreign.unmatched.${i % 1200}`;
+      xmlBig.push(`<programme start="${tStartStr}" stop="${tStopStr}" channel="${chId}"><title>Show ${i}</title></programme>`);
+    }
+    xmlBig.push('</tv>');
+    const tXml0 = performance.now();
+    const bigEpg = await Parser.parseXMLTVAsync(xmlBig.join('\n'), bigParsed.channels, 3, 0);
+    const dtXml = performance.now() - tXml0;
+    assert.equal(bigEpg.totalPrograms, 16666);
+    console.log(`   ✓ Parsed 50,000 XMLTV programmes (filtered 33,334 unmatched) in ${dtXml.toFixed(1)} ms`);
+  }
+
   console.log('✅ All parser, 3-day EPG, catchup URL, Samsung wgt-private persistence, .xml.gz, anti-blink, and TV installer tests passed!');
 }
 

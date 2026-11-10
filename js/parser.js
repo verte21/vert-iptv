@@ -246,7 +246,7 @@
           exactIdMap[ch.tvgId] = bucket;
           exactIdMap[ch.tvgId.toLowerCase()] = bucket;
         }
-        if (ch.tvgName) {
+        if (ch.tvgName && ch.tvgName !== ch.name) {
           var nt = normalizeKey(ch.tvgName);
           if (nt && !normNameMap[nt]) normNameMap[nt] = bucket;
         }
@@ -282,8 +282,9 @@
         }
       }
 
-      // Pass 2: Fast zero-DOM scan of <programme ...>...</programme>
+      // Pass 2: Fast zero-DOM scan of <programme ...>...</programme> with O(1) memoized channel resolution
       var epgByBucket = Object.create(null);
+      var resolvedChCache = Object.create(null);
       var totalMatched = 0;
       var pPos = 0;
 
@@ -300,11 +301,16 @@
         var rawCh = extractAttr(head, 'channel');
         if (!rawCh) continue;
 
-        var bucketKey =
-          exactIdMap[rawCh] ||
-          exactIdMap[rawCh.toLowerCase()] ||
-          (rawCh.indexOf('&') !== -1 ? exactIdMap[decodeEntities(rawCh)] : '') ||
-          normNameMap[normalizeKey(rawCh)];
+        var bucketKey = resolvedChCache[rawCh];
+        if (bucketKey === undefined) {
+          bucketKey =
+            exactIdMap[rawCh] ||
+            exactIdMap[rawCh.toLowerCase()] ||
+            (rawCh.indexOf('&') !== -1 ? exactIdMap[decodeEntities(rawCh)] : '') ||
+            normNameMap[normalizeKey(rawCh)] ||
+            '';
+          resolvedChCache[rawCh] = bucketKey;
+        }
 
         if (!bucketKey) continue;
 
@@ -436,9 +442,16 @@
   }
 
   function parseXMLTVAsync(xmlText, channels, catchupDays, epgOffsetMin) {
+    var w = getWorker();
+    if (!w) {
+      return yieldToMain().then(function () {
+        return localCore.parseXMLTV(xmlText, channels, catchupDays, epgOffsetMin);
+      });
+    }
     // Strip channels down to lightweight matching metadata before structured cloning to Worker
     var slimChannels = channels.map(function (c) {
       return {
+        name: c.name,
         tvgId: c.tvgId,
         tvgName: c.tvgName,
         normName: c.normName
@@ -453,7 +466,7 @@
         epgOffsetMin: epgOffsetMin
       },
       function () {
-        return localCore.parseXMLTV(xmlText, slimChannels, catchupDays, epgOffsetMin);
+        return localCore.parseXMLTV(xmlText, channels, catchupDays, epgOffsetMin);
       }
     );
   }
