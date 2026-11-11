@@ -4,3 +4,8 @@ dist/
 .DS_Store
 .local-config.json
 vertIPTV-Mac.command
+android-tv/.gradle/
+android-tv/build/
+android-tv/app/build/
+android-tv/local.properties
+android-tv/app/src/main/assets/www/

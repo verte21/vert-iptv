@@ -20,14 +20,23 @@
 
     var hlsInstance = null;
     var mpegtsInstance = null;
-    var activeEngine = 'none'; // 'avplay' | 'mpegts' | 'hls' | 'native'
+    var activeEngine = 'none'; // 'android' | 'avplay' | 'mpegts' | 'hls' | 'native'
     var isPaused = false;
     var userMuted = false;
     var autoplayBlockedMuted = false;
+    var videoVisible = true;
     var currentSession = null;
+    var lastTuneInvokeMs = 0;
 
     function hasAvPlay() {
       return !!(global.webapis && global.webapis.avplay && typeof global.webapis.avplay.open === 'function');
+    }
+
+    function hasAndroidTvPlayer() {
+      return !!(
+        global.AndroidTvBridge &&
+        typeof global.AndroidTvBridge.playStream === 'function'
+      );
     }
 
     function disableSamsungScreenSaver() {
@@ -145,6 +154,13 @@
     }
 
     function stopHtml5() {
+      var wasHtml5Active =
+        activeEngine === 'hls' ||
+        activeEngine === 'mpegts' ||
+        activeEngine === 'native' ||
+        hlsInstance !== null ||
+        mpegtsInstance !== null;
+      if (!wasHtml5Active) return;
       detachHtml5Engines();
       if (videoEl) {
         try { videoEl.load(); } catch (_) {}
@@ -170,9 +186,17 @@
       if (avObj) avObj.style.visibility = 'hidden';
     }
 
+    function stopAndroidPlayer() {
+      if (!hasAndroidTvPlayer()) return;
+      try {
+        global.AndroidTvBridge.stopStream();
+      } catch (_) {}
+    }
+
     function stopAll() {
       loadToken++;
       clearTimers();
+      stopAndroidPlayer();
       stopAvPlay();
       stopHtml5();
       activeEngine = 'none';
@@ -181,6 +205,12 @@
 
     function getElapsedArchivePlaySec() {
       if (!currentSession || currentSession.mode !== 'archive') return 0;
+      if (activeEngine === 'android' && hasAndroidTvPlayer() && typeof global.AndroidTvBridge.getCurrentPositionMs === 'function') {
+        try {
+          var andMs = Number(global.AndroidTvBridge.getCurrentPositionMs()) || 0;
+          if (andMs > 0 && andMs < 86400000) return Math.floor(andMs / 1000);
+        } catch (_) {}
+      }
       if (activeEngine === 'hls' || activeEngine === 'mpegts' || activeEngine === 'native') {
         var ct = Number(videoEl && videoEl.currentTime) || 0;
         if (ct > 0 && isFinite(ct) && ct < 86400) {
@@ -214,8 +244,13 @@
     }
 
     function startClock() {
-      if (timeTimer) clearInterval(timeTimer);
-      timeTimer = setInterval(emitArchiveClock, 1000);
+      if (timeTimer) {
+        clearInterval(timeTimer);
+        timeTimer = null;
+      }
+      if (currentSession && currentSession.mode === 'archive') {
+        timeTimer = setInterval(emitArchiveClock, 1000);
+      }
     }
 
     function scheduleLiveReconnect(reason) {
@@ -275,6 +310,10 @@
 
         try {
           av.setTimeoutForBuffering(10);
+        } catch (_) {}
+        try {
+          av.setBufferingParam('PLAYER_BUFFER_FOR_PLAY', 'PLAYER_BUFFER_SIZE_IN_SECOND', 3);
+          av.setBufferingParam('PLAYER_BUFFER_FOR_RESUME', 'PLAYER_BUFFER_SIZE_IN_SECOND', 4);
         } catch (_) {}
 
         var settled = false;
@@ -407,7 +446,7 @@
           {
             enableWorker: true,
             enableStashBuffer: true,
-            stashInitialSize: isLocalHwStream ? 128 * 1024 : 384 * 1024,
+            stashInitialSize: isLocalHwStream ? 128 * 1024 : 512 * 1024,
             fixAudioTimestampGap: true,
             liveBufferLatencyChasing: false,
             autoCleanupSourceBuffer: true,
@@ -448,6 +487,7 @@
       if (videoEl.style.display !== 'block') {
         videoEl.style.display = 'block';
       }
+      videoEl.style.visibility = videoVisible ? 'visible' : 'hidden';
       autoplayBlockedMuted = false;
       emitMuteState();
 
@@ -463,9 +503,10 @@
         var hls = new global.Hls({
           enableWorker: true,
           lowLatencyMode: false,
-          liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 8,
-          maxBufferLength: 30,
+          liveSyncDurationCount: 4,
+          liveMaxLatencyDurationCount: 10,
+          maxLiveSyncPlaybackRate: 1,
+          maxBufferLength: 35,
           maxMaxBufferLength: 60,
           backBufferLength: 25,
           maxBufferHole: 0.5,
@@ -556,8 +597,95 @@
       };
     }
 
+    function playWithAndroidBridge(url, token, onEngineFail) {
+      try {
+        stopHtml5();
+        stopAvPlay();
+        var settled = false;
+
+        function failOnce(msg) {
+          if (settled || token !== loadToken) return;
+          settled = true;
+          if (prepareWatchdogTimer) {
+            clearTimeout(prepareWatchdogTimer);
+            prepareWatchdogTimer = null;
+          }
+          stopAndroidPlayer();
+          onEngineFail(msg);
+        }
+
+        if (prepareWatchdogTimer) clearTimeout(prepareWatchdogTimer);
+        prepareWatchdogTimer = setTimeout(function () {
+          failOnce('Android ExoPlayer prepare timeout');
+        }, 10000);
+
+        global.__onAndroidPlayerEvent = function (state, detail) {
+          if (token !== loadToken) return;
+          if (state === 'buffering') {
+            onState('buffering');
+          } else if (state === 'playing') {
+            settled = true;
+            if (prepareWatchdogTimer) {
+              clearTimeout(prepareWatchdogTimer);
+              prepareWatchdogTimer = null;
+            }
+            activeEngine = 'android';
+            isPaused = false;
+            if (currentSession && !currentSession.playStartedMs) {
+              currentSession.playStartedMs = Date.now();
+            }
+            armHealthyStreamTimer(token);
+            onState('playing');
+            startClock();
+          } else if (state === 'paused') {
+            isPaused = true;
+            onState('paused');
+          } else if (state === 'ended') {
+            if (currentSession && currentSession.mode === 'live') {
+              scheduleLiveReconnect('Live stream reset');
+            } else {
+              onState('ended');
+            }
+          } else if (state === 'error') {
+            if (!settled) {
+              failOnce('ExoPlayer error: ' + (detail || 'stream failed'));
+            } else if (currentSession && currentSession.mode === 'live') {
+              scheduleLiveReconnect('ExoPlayer error: ' + (detail || 'stream interrupted'));
+            } else {
+              onState('error');
+              onError(detail || 'Archive stream error');
+            }
+          }
+        };
+
+        activeEngine = 'android';
+        isPaused = false;
+        var isLive = !currentSession || currentSession.mode === 'live';
+        global.AndroidTvBridge.playStream(String(url), isLive);
+      } catch (ex) {
+        onEngineFail(String(ex));
+      }
+    }
+
     function attemptUrlWithEngines(url, preferEngine, token, onExhausted) {
+      var canAndroid = hasAndroidTvPlayer();
       var canAv = hasAvPlay();
+
+      if (canAndroid && preferEngine !== 'hls') {
+        playWithAndroidBridge(url, token, function (andErr) {
+          if (token !== loadToken) return;
+          if (preferEngine === 'avplay') {
+            onExhausted(andErr);
+            return;
+          }
+          playWithHtml5(url, token, function (hErr) {
+            if (token !== loadToken) return;
+            onExhausted(andErr + ' | ' + hErr);
+          });
+        });
+        return;
+      }
+
       var tryAvFirst = canAv && preferEngine !== 'hls';
 
       if (tryAvFirst) {
@@ -575,7 +703,9 @@
       } else {
         playWithHtml5(url, token, function (hErr) {
           if (token !== loadToken) return;
-          if (canAv && preferEngine !== 'hls') {
+          if (canAndroid) {
+            playWithAndroidBridge(url, token, onExhausted);
+          } else if (canAv && preferEngine !== 'hls') {
             playWithAvPlay(url, token, onExhausted);
           } else {
             onExhausted(hErr);
@@ -605,7 +735,7 @@
 
     function canUseBrowserStreamProxy() {
       var proto = global.location && global.location.protocol;
-      return !hasAvPlay() && (proto === 'http:' || proto === 'https:');
+      return !hasAvPlay() && !hasAndroidTvPlayer() && (proto === 'http:' || proto === 'https:');
     }
 
     // On Samsung TV (`hasAvPlay()`), returns untouched native URLs immediately!
@@ -642,9 +772,22 @@
 
     function scheduleHardwareStart(preferEngine) {
       var token = ++loadToken;
-      if (tuneDebounceTimer) clearTimeout(tuneDebounceTimer);
+      if (tuneDebounceTimer) {
+        clearTimeout(tuneDebounceTimer);
+        tuneDebounceTimer = null;
+      }
       onState('buffering');
-      var delay = hasAvPlay() ? 180 : 30;
+      var nowMs = Date.now();
+      var elapsedSinceLast = nowMs - lastTuneInvokeMs;
+      lastTuneInvokeMs = nowMs;
+
+      // On Android TV / Browser, tune at 0ms latency unless the user is holding down Channel Up/Down (<110ms repeats)
+      if (!hasAvPlay() && elapsedSinceLast > 110) {
+        trySessionUrls(token, preferEngine);
+        return;
+      }
+
+      var delay = hasAvPlay() ? 140 : 45;
       tuneDebounceTimer = setTimeout(function () {
         tuneDebounceTimer = null;
         if (token !== loadToken) return;
@@ -710,7 +853,12 @@
     }
 
     function togglePause() {
-      if (activeEngine === 'avplay' && hasAvPlay()) {
+      if (activeEngine === 'android' && hasAndroidTvPlayer() && typeof global.AndroidTvBridge.togglePause === 'function') {
+        try {
+          isPaused = !!global.AndroidTvBridge.togglePause();
+          onState(isPaused ? 'paused' : 'playing');
+        } catch (_) {}
+      } else if (activeEngine === 'avplay' && hasAvPlay()) {
         try {
           var st = global.webapis.avplay.getState();
           if (st === 'PLAYING') {
@@ -747,6 +895,11 @@
         videoEl.muted = userMuted;
         if (!userMuted) videoEl.volume = 1.0;
       }
+      if (hasAndroidTvPlayer() && typeof global.AndroidTvBridge.setMuted === 'function') {
+        try {
+          global.AndroidTvBridge.setMuted(userMuted);
+        } catch (_) {}
+      }
       if (global.tizen && global.tizen.tvaudiocontrol) {
         try {
           global.tizen.tvaudiocontrol.setMute(userMuted);
@@ -756,7 +909,44 @@
       return userMuted;
     }
 
+    function adjustVolume(deltaStep) {
+      if (autoplayBlockedMuted) {
+        unlockAutoplayAudio();
+      }
+      var pct = 100;
+      if (videoEl) {
+        var cur = userMuted ? 0 : (typeof videoEl.volume === 'number' ? videoEl.volume : 1);
+        var next = Math.max(0, Math.min(1, Math.round((cur + deltaStep * 0.1) * 10) / 10));
+        videoEl.volume = next;
+        userMuted = next === 0;
+        videoEl.muted = userMuted;
+        pct = Math.round(next * 100);
+      }
+      if (hasAndroidTvPlayer() && typeof global.AndroidTvBridge.adjustVolume === 'function') {
+        try {
+          pct = Number(global.AndroidTvBridge.adjustVolume(deltaStep > 0 ? 1 : -1)) || pct;
+          userMuted = pct <= 0;
+        } catch (_) {}
+      }
+      if (global.tizen && global.tizen.tvaudiocontrol) {
+        try {
+          if (deltaStep > 0) global.tizen.tvaudiocontrol.setVolumeUp();
+          else global.tizen.tvaudiocontrol.setVolumeDown();
+          if (typeof global.tizen.tvaudiocontrol.getVolume === 'function') {
+            pct = global.tizen.tvaudiocontrol.getVolume();
+          }
+        } catch (_) {}
+      }
+      emitMuteState();
+      return pct;
+    }
+
     function cycleAudioTrack() {
+      if (activeEngine === 'android' && hasAndroidTvPlayer() && typeof global.AndroidTvBridge.cycleAudioTrack === 'function') {
+        try {
+          return String(global.AndroidTvBridge.cycleAudioTrack() || '');
+        } catch (_) {}
+      }
       if (activeEngine === 'hls' && hlsInstance && hlsInstance.audioTracks && hlsInstance.audioTracks.length > 1) {
         var nextIdx = (hlsInstance.audioTrack + 1) % hlsInstance.audioTracks.length;
         hlsInstance.audioTrack = nextIdx;
@@ -816,13 +1006,29 @@
       } catch (_) {}
     }
 
+    function setVideoVisible(visible) {
+      var next = !!visible;
+      if (videoVisible === next) return;
+      videoVisible = next;
+      if (hasAndroidTvPlayer() && typeof global.AndroidTvBridge.setVideoSurfaceVisible === 'function') {
+        try {
+          global.AndroidTvBridge.setVideoSurfaceVisible(next);
+        } catch (_) {}
+      }
+      if (videoEl && videoEl.style.display === 'block') {
+        videoEl.style.visibility = 'visible';
+      }
+    }
+
     return {
       playLive: playLive,
       playArchive: playArchive,
       seekArchiveToOffset: seekArchiveToOffset,
       togglePause: togglePause,
       toggleMute: toggleMute,
+      adjustVolume: adjustVolume,
       cycleAudioTrack: cycleAudioTrack,
+      setVideoVisible: setVideoVisible,
       stop: stopAll,
       getSession: function () {
         return currentSession;

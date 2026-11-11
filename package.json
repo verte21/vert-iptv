@@ -1,6 +1,6 @@
 {
   "name": "vert-iptv",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -39,7 +39,9 @@
   ],
   "scripts": {
     "start": "node server.mjs",
-    "build": "bash scripts/build-wgt.sh",
+    "build:wgt": "bash scripts/build-wgt.sh",
+    "build:apk": "bash scripts/build-apk.sh",
+    "build": "bash scripts/build-apk.sh && bash scripts/build-wgt.sh",
     "deploy": "bash scripts/deploy-tv.sh",
     "tv:scan": "bash scripts/deploy-tv.sh --scan",
     "tv:install": "bash scripts/deploy-tv.sh",

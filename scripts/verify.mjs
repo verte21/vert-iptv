@@ -423,7 +423,217 @@ https://arch.example.com/ch/custom.ch/live.m3u8
     assert.equal(i18n.pl.today, 'Dzisiaj');
   }
 
-  console.log('✅ All parser, 3-day EPG, catchup URL, Samsung wgt-private persistence, .xml.gz, anti-blink, TV installer, and EN/DE/PL i18n tests passed!');
+  console.log('10. Testing Android TV Bridge (ExoPlayer playback, SharedPreferences recovery, USB scan, & APK)...');
+  {
+    const nativePrefs = new Map();
+    let lastPlayedUrl = '';
+    let lastPlayedLive = false;
+    let pausedFlag = false;
+    let mutedFlag = false;
+    let volumePct = 80;
+
+    const androidBox = {
+      window: null,
+      document: { addEventListener() {}, hidden: false },
+      location: { protocol: 'file:', host: '' },
+      Date, Math, Number, String, Array, Object, RegExp, Promise, Set, encodeURIComponent, isFinite,
+      setTimeout, clearTimeout, setInterval: () => 1, clearInterval: () => {},
+      addEventListener() {},
+      localStorage: {
+        _m: new Map(),
+        getItem(k) { return this._m.has(k) ? this._m.get(k) : null; },
+        setItem(k, v) { this._m.set(k, String(v)); },
+        clear() { this._m.clear(); }
+      },
+      AndroidTvBridge: {
+        saveNativeState(k, v) { nativePrefs.set(k, String(v)); },
+        loadNativeState(k) { return nativePrefs.get(k) || ''; },
+        scanUsbDrives() {
+          return JSON.stringify({
+            available: true,
+            found: true,
+            label: 'USB_DRIVE_1',
+            config: { m3uUrl: 'http://android-usb.tv/playlist.m3u', epgUrl: 'http://android-usb.tv/epg.xml.gz' },
+            m3uText: '',
+            m3uName: '',
+            epgText: '',
+            epgName: ''
+          });
+        },
+        playStream(url, isLive) {
+          lastPlayedUrl = url;
+          lastPlayedLive = isLive;
+          if (androidBox.__onAndroidPlayerEvent) {
+            androidBox.__onAndroidPlayerEvent('buffering', '');
+            androidBox.__onAndroidPlayerEvent('playing', '');
+          }
+        },
+        stopStream() {},
+        togglePause() {
+          pausedFlag = !pausedFlag;
+          return pausedFlag;
+        },
+        getCurrentPositionMs() { return 42000; },
+        setMuted(m) { mutedFlag = !!m; },
+        adjustVolume(step) {
+          volumePct = Math.max(0, Math.min(100, volumePct + step * 10));
+          return volumePct;
+        },
+        cycleAudioTrack() { return 'Polish (AC-3)'; }
+      }
+    };
+    androidBox.window = androidBox;
+    vm.createContext(androidBox);
+    for (const rel of ['js/storage.js', 'js/catchup.js', 'js/usb-loader.js', 'js/player.js']) {
+      vm.runInContext(fs.readFileSync(path.join(rootDir, rel), 'utf8'), androidBox, { filename: rel });
+    }
+
+    // 10A: SharedPreferences recovery when Android WebView localStorage is cleared
+    androidBox.vertIPTV.Storage.saveSettings({ m3uUrl: 'http://shield.tv/live.m3u', epgUrl: 'http://shield.tv/epg.xml' });
+    androidBox.localStorage.clear();
+    const recAndroid = await androidBox.vertIPTV.Storage.loadSettingsGuaranteed();
+    assert.equal(recAndroid.m3uUrl, 'http://shield.tv/live.m3u');
+    assert.equal(recAndroid.epgUrl, 'http://shield.tv/epg.xml');
+
+    // 10B: USB Pendrive scan via AndroidTvBridge
+    assert.equal(androidBox.vertIPTV.UsbLoader.hasTizenFs(), true);
+    const andUsb = await androidBox.vertIPTV.UsbLoader.scanUsbPendrive();
+    assert.equal(andUsb.found, true);
+    assert.equal(andUsb.config.m3uUrl, 'http://android-usb.tv/playlist.m3u');
+
+    // 10C: Hardware ExoPlayer bridge playback, volume, mute, pause, and audio track cycling
+    const pStates = [];
+    const andPlayer = androidBox.vertIPTV.Player.createPlayer({
+      avElement: { style: {} },
+      videoElement: { style: {}, pause() {}, removeAttribute() {}, load() {} },
+      onState(st) { pStates.push(st); }
+    });
+    andPlayer.playLive({ url: 'http://shield.tv:8080/live/u/p/505.ts' }, { preferEngine: 'auto' });
+    await new Promise((r) => setTimeout(r, 80));
+    assert.equal(lastPlayedUrl, 'http://shield.tv:8080/live/u/p/505.ts');
+    assert.equal(lastPlayedLive, true);
+    assert.equal(andPlayer.getActiveEngine(), 'android');
+    assert.ok(pStates.includes('playing'));
+    assert.equal(andPlayer.togglePause(), true);
+    assert.equal(andPlayer.adjustVolume(1), 90);
+    assert.equal(andPlayer.toggleMute(), true);
+    assert.equal(mutedFlag, true);
+    assert.equal(andPlayer.cycleAudioTrack(), 'Polish (AC-3)');
+
+    // 10D: Verify Android TV Manifest Leanback launcher & compiled APK
+    const manifestXml = fs.readFileSync(path.join(rootDir, 'android-tv/app/src/main/AndroidManifest.xml'), 'utf8');
+    assert.ok(manifestXml.includes('android.software.leanback'), 'AndroidManifest.xml must declare android.software.leanback');
+    assert.ok(manifestXml.includes('android.intent.category.LEANBACK_LAUNCHER'), 'AndroidManifest.xml must include LEANBACK_LAUNCHER intent');
+
+    const apkPath = path.join(rootDir, 'dist', 'vertIPTV-tv.apk');
+    if (fs.existsSync(apkPath)) {
+      const apkBuf = fs.readFileSync(apkPath);
+      assert.ok(apkBuf.length > 500000, 'dist/vertIPTV-tv.apk should be a valid non-empty APK binary');
+      assert.equal(apkBuf[0], 0x50, 'APK must start with ZIP magic byte P');
+      assert.equal(apkBuf[1], 0x4b, 'APK must start with ZIP magic byte K');
+    }
+  }
+
+  console.log('11. Testing Performance Optimizations (Worker search tokens, Singleton IDB, Live Buffer Cushion, & Streaming EPG Pruning)...');
+  {
+    // 11A: Worker-computed _lowerName and _numStr tokens in parseM3UAsync
+    assert.equal(parsed.channels[0]._lowerName, 'tvp 1 hd');
+    assert.equal(parsed.channels[0]._numStr, '1');
+    assert.equal(parsed.channels[1]._lowerName, 'polsat sport premium 1');
+    assert.equal(parsed.channels[1]._numStr, '2');
+
+    // 11B: Singleton IndexedDB connection pooling in Storage (indexedDB.open called only once across multiple ops)
+    let idbOpenCount = 0;
+    let idbCloseCount = 0;
+    const idbStore = new Map();
+    const idbBox = {
+      window: null,
+      Promise,
+      Object,
+      String,
+      Number,
+      Boolean,
+      Set,
+      Array,
+      Date,
+      Math,
+      localStorage: { getItem: () => null, setItem() {} },
+      indexedDB: {
+        open() {
+          idbOpenCount++;
+          const req = {};
+          setTimeout(() => {
+            req.result = {
+              objectStoreNames: { contains: () => true },
+              close() { idbCloseCount++; },
+              transaction() {
+                const tx = {
+                  objectStore() {
+                    return {
+                      put(val, key) {
+                        idbStore.set(key, val);
+                        setTimeout(() => tx.oncomplete && tx.oncomplete(), 1);
+                      },
+                      get(key) {
+                        const gReq = {};
+                        setTimeout(() => {
+                          gReq.result = idbStore.get(key);
+                          gReq.onsuccess && gReq.onsuccess();
+                        }, 1);
+                        return gReq;
+                      },
+                      delete(key) {
+                        idbStore.delete(key);
+                        setTimeout(() => tx.oncomplete && tx.oncomplete(), 1);
+                      }
+                    };
+                  }
+                };
+                return tx;
+              }
+            };
+            req.onsuccess && req.onsuccess();
+          }, 1);
+          return req;
+        }
+      }
+    };
+    idbBox.window = idbBox;
+    vm.createContext(idbBox);
+    vm.runInContext(fs.readFileSync(path.join(rootDir, 'js/storage.js'), 'utf8'), idbBox);
+    await idbBox.vertIPTV.Storage.saveSnapshot('active_playlist', { channels: [1, 2, 3] });
+    await idbBox.vertIPTV.Storage.saveSnapshot('active_epg', { epgByBucket: { a: [] } });
+    const snapLoaded = await idbBox.vertIPTV.Storage.loadSnapshot('active_playlist');
+    assert.equal(snapLoaded.channels.length, 3);
+    await idbBox.vertIPTV.Storage.clearSnapshots();
+    assert.equal(idbOpenCount, 1, 'Expected singleton IDB connection to open only once across 4 operations');
+    assert.equal(idbCloseCount, 0, 'Expected singleton IDB connection not to close after normal transactions');
+
+    // 11C: Verify Android TV MainActivity live buffer cushion (2500ms / 4000ms), setMaxPlaybackSpeed(1.0f), DefaultAllocator, EPG pruning, & HE-AAC SBR audio fix
+    const mainJava = fs.readFileSync(
+      path.join(rootDir, 'android-tv/app/src/main/java/tv/vertiptv/app/MainActivity.java'),
+      'utf8'
+    );
+    assert.ok(mainJava.includes('new DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE, 64)'), 'MainActivity must use pre-warmed DefaultAllocator');
+    assert.ok(mainJava.includes('2500,\n                        4000'), 'MainActivity must use 2.5s initial / 4.0s rebuffer live cushion');
+    assert.ok(mainJava.includes('.setMaxPlaybackSpeed(1.0f)'), 'MainActivity must lock live maxPlaybackSpeed to 1.0f so safety buffer is never drained');
+    assert.ok(mainJava.includes('parseXmltvAttrEpochSec'), 'MainActivity must prune expired XMLTV programmes in Java streaming filter');
+    assert.ok(mainJava.includes('DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON'), 'MainActivity must use EXTENSION_RENDERER_MODE_ON so MediaCodecAudioRenderer handles 24/48kHz HE-AAC SBR (Eska TV HD) while FfmpegAudioRenderer handles MP2/AC-3/E-AC-3/DTS');
+    assert.ok(mainJava.includes('.setEnableFloatOutput(false)'), 'MainActivity must force 16-bit PCM AudioSink output for Android TV HDMI compatibility');
+    assert.ok(mainJava.includes('DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS') && mainJava.includes('DefaultTsPayloadReaderFactory.FLAG_IGNORE_SPLICE_INFO_STREAM'), 'MainActivity must enable DVB TS access unit detection and ignore SCTE-35 splice streams');
+    assert.ok(mainJava.includes('TsExtractor.TS_PACKET_SIZE * 1800'), 'MainActivity must use 1800 TS packets timestamp search window');
+    assert.ok(mainJava.includes('.setConstrainAudioChannelCountToDeviceCapabilities(false)'), 'MainActivity must not reject multichannel audio tracks on stereo TVs');
+    assert.ok(mainJava.includes('trySelectFallbackAudioTrack()'), 'MainActivity must attempt switching to an alternate audio track before reopening/disabling audio');
+    assert.ok(mainJava.includes('streamErrorRetryStep == 0'), 'MainActivity must retry with audio enabled before falling back to video-only');
+
+    // 11D: Verify OSD icon-only buttons & seek step buttons
+    const indexHtml = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
+    assert.ok(indexHtml.includes('id="osd-btn-playpause" type="button" class="osd-btn osd-btn--icon osd-btn--playpause"'), 'OSD play/pause button must be icon-only');
+    assert.ok(!indexHtml.includes('id="osd-lbl-playpause"'), 'OSD play/pause button must not have visible text label');
+    assert.ok(indexHtml.includes('<span>-30s</span>') && indexHtml.includes('<span>+30s</span>'), 'OSD seek buttons must keep step text (-30s / +30s)');
+  }
+
+  console.log('✅ All parser, 3-day EPG, catchup URL, Samsung wgt-private, Android TV ExoPlayer bridge, .xml.gz, anti-blink, TV installer, and EN/DE/PL i18n tests passed!');
 }
 
 run().catch((err) => {

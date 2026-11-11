@@ -132,7 +132,9 @@
           channels.push({
             key: key,
             num: chNo,
+            _numStr: String(chNo),
             name: name,
+            _lowerName: String(name).toLowerCase(),
             normName: normalizeKey(name),
             group: group,
             logo: logo,
@@ -321,15 +323,15 @@
 
         var body = xmlText.slice(pHeadEnd + 1, pClose);
         var title = extractTagText(body, 'title') || 'Program';
-        var desc = extractTagText(body, 'desc');
-        if (desc.length > 260) desc = desc.slice(0, 257) + '...';
+        var desc = body.indexOf('<desc') !== -1 ? extractTagText(body, 'desc') : '';
+        if (desc.length > 160) desc = desc.slice(0, 157) + '...';
 
         var arr = epgByBucket[bucketKey];
         if (!arr) {
           arr = [];
           epgByBucket[bucketKey] = arr;
         }
-        arr.push({ s: startSec, e: stopSec, t: title, d: desc });
+        arr.push(desc ? { s: startSec, e: stopSec, t: title, d: desc } : { s: startSec, e: stopSec, t: title, d: '' });
         totalMatched++;
       }
 
@@ -351,6 +353,10 @@
 
     return {
       normalizeKey: normalizeKey,
+      decodeEntities: decodeEntities,
+      parseXmltvTimeFast: parseXmltvTimeFast,
+      extractAttr: extractAttr,
+      extractTagText: extractTagText,
       parseM3U: parseM3U,
       parseXMLTV: parseXMLTV
     };
@@ -365,6 +371,137 @@
     }
     return new Promise(function (resolve) {
       setTimeout(resolve, 0);
+    });
+  }
+
+  // Time-sliced non-blocking XMLTV parser (<12ms per slice) when Web Worker is unavailable on file:// origins
+  function parseXMLTVChunked(xmlText, channels, catchupDays, epgOffsetMin) {
+    if (!xmlText || xmlText.length < 180000) {
+      return yieldToMain().then(function () {
+        return localCore.parseXMLTV(xmlText, channels, catchupDays, epgOffsetMin);
+      });
+    }
+    return yieldToMain().then(function () {
+      var nowSec = Math.floor(Date.now() / 1000);
+      var days = Math.min(3, Math.max(1, Number(catchupDays) || 3));
+      var minEndSec = nowSec - Math.round((days + 0.5) * 86400);
+      var maxStartSec = nowSec + 86400;
+      var offsetSec = (Number(epgOffsetMin) || 0) * 60;
+
+      var exactIdMap = Object.create(null);
+      var normNameMap = Object.create(null);
+
+      for (var i = 0; i < channels.length; i++) {
+        var ch = channels[i];
+        var bucket = ch.tvgId || ('norm:' + ch.normName);
+        if (ch.tvgId) {
+          exactIdMap[ch.tvgId] = bucket;
+          exactIdMap[ch.tvgId.toLowerCase()] = bucket;
+        }
+        if (ch.tvgName && ch.tvgName !== ch.name) {
+          var nt = localCore.normalizeKey(ch.tvgName);
+          if (nt && !normNameMap[nt]) normNameMap[nt] = bucket;
+        }
+        if (ch.normName && !normNameMap[ch.normName]) {
+          normNameMap[ch.normName] = bucket;
+        }
+      }
+
+      var cPos = 0;
+      while (true) {
+        var cStart = xmlText.indexOf('<channel ', cPos);
+        if (cStart === -1) break;
+        var cEnd = xmlText.indexOf('</channel>', cStart + 9);
+        if (cEnd === -1) break;
+        cPos = cEnd + 10;
+
+        var cHeadEnd = xmlText.indexOf('>', cStart + 8);
+        if (cHeadEnd === -1 || cHeadEnd > cEnd) continue;
+        var xmlChId = localCore.decodeEntities(localCore.extractAttr(xmlText.slice(cStart, cHeadEnd + 1), 'id'));
+        if (!xmlChId) continue;
+
+        if (!exactIdMap[xmlChId] && !exactIdMap[xmlChId.toLowerCase()]) {
+          var cBody = xmlText.slice(cHeadEnd + 1, cEnd);
+          var disp = localCore.extractTagText(cBody, 'display-name');
+          if (disp) {
+            var nd = localCore.normalizeKey(disp);
+            if (nd && normNameMap[nd]) {
+              exactIdMap[xmlChId] = normNameMap[nd];
+              exactIdMap[xmlChId.toLowerCase()] = normNameMap[nd];
+            }
+          }
+        }
+      }
+
+      var epgByBucket = Object.create(null);
+      var resolvedChCache = Object.create(null);
+      var totalMatched = 0;
+      var pPos = 0;
+
+      function processProgrammeBatch() {
+        var sliceStart = Date.now();
+        var countInSlice = 0;
+        while (true) {
+          var pStart = xmlText.indexOf('<programme ', pPos);
+          if (pStart === -1) break;
+          var pHeadEnd = xmlText.indexOf('>', pStart + 11);
+          if (pHeadEnd === -1) break;
+          var pClose = xmlText.indexOf('</programme>', pHeadEnd + 1);
+          if (pClose === -1) break;
+          pPos = pClose + 12;
+
+          var head = xmlText.slice(pStart + 10, pHeadEnd);
+          var rawCh = localCore.extractAttr(head, 'channel');
+          if (rawCh) {
+            var bucketKey = resolvedChCache[rawCh];
+            if (bucketKey === undefined) {
+              bucketKey =
+                exactIdMap[rawCh] ||
+                exactIdMap[rawCh.toLowerCase()] ||
+                (rawCh.indexOf('&') !== -1 ? exactIdMap[localCore.decodeEntities(rawCh)] : '') ||
+                normNameMap[localCore.normalizeKey(rawCh)] ||
+                '';
+              resolvedChCache[rawCh] = bucketKey;
+            }
+            if (bucketKey) {
+              var startSec = localCore.parseXmltvTimeFast(localCore.extractAttr(head, 'start')) + offsetSec;
+              var stopSec = localCore.parseXmltvTimeFast(localCore.extractAttr(head, 'stop')) + offsetSec;
+              if (startSec && stopSec && stopSec > startSec && stopSec >= minEndSec && startSec <= maxStartSec) {
+                var body = xmlText.slice(pHeadEnd + 1, pClose);
+                var title = localCore.extractTagText(body, 'title') || 'Program';
+                var desc = body.indexOf('<desc') !== -1 ? localCore.extractTagText(body, 'desc') : '';
+                if (desc.length > 160) desc = desc.slice(0, 157) + '...';
+
+                var arr = epgByBucket[bucketKey];
+                if (!arr) {
+                  arr = [];
+                  epgByBucket[bucketKey] = arr;
+                }
+                arr.push({ s: startSec, e: stopSec, t: title, d: desc });
+                totalMatched++;
+              }
+            }
+          }
+
+          if ((++countInSlice & 255) === 0 && Date.now() - sliceStart >= 11) {
+            return yieldToMain().then(processProgrammeBatch);
+          }
+        }
+
+        var keys = Object.keys(epgByBucket);
+        for (var k = 0; k < keys.length; k++) {
+          epgByBucket[keys[k]].sort(function (a, b) {
+            return a.s - b.s;
+          });
+        }
+        return {
+          epgByBucket: epgByBucket,
+          totalPrograms: totalMatched,
+          matchedChannels: keys.length
+        };
+      }
+
+      return processProgrammeBatch();
     });
   }
 
@@ -444,9 +581,7 @@
   function parseXMLTVAsync(xmlText, channels, catchupDays, epgOffsetMin) {
     var w = getWorker();
     if (!w) {
-      return yieldToMain().then(function () {
-        return localCore.parseXMLTV(xmlText, channels, catchupDays, epgOffsetMin);
-      });
+      return parseXMLTVChunked(xmlText, channels, catchupDays, epgOffsetMin);
     }
     // Strip channels down to lightweight matching metadata before structured cloning to Worker
     var slimChannels = channels.map(function (c) {
@@ -466,19 +601,176 @@
         epgOffsetMin: epgOffsetMin
       },
       function () {
-        return localCore.parseXMLTV(xmlText, channels, catchupDays, epgOffsetMin);
+        return parseXMLTVChunked(xmlText, channels, catchupDays, epgOffsetMin);
       }
     );
   }
 
+  function buildChannelFilterSpec(channels) {
+    if (!channels || !channels.length) return '';
+    var idSet = Object.create(null);
+    var normSet = Object.create(null);
+    var ids = [];
+    var norms = [];
+    for (var i = 0; i < channels.length; i++) {
+      var ch = channels[i];
+      if (!ch) continue;
+      if (ch.tvgId) {
+        var tid = String(ch.tvgId).trim();
+        if (tid && !idSet[tid]) {
+          idSet[tid] = true;
+          ids.push(tid);
+        }
+        var tidLow = tid.toLowerCase();
+        if (tidLow && !idSet[tidLow]) {
+          idSet[tidLow] = true;
+          ids.push(tidLow);
+        }
+      }
+      var nn = ch.normName || localCore.normalizeKey(ch.name || '');
+      if (nn && !normSet[nn]) {
+        normSet[nn] = true;
+        norms.push(nn);
+      }
+      if (ch.tvgName && ch.tvgName !== ch.name) {
+        var tn = localCore.normalizeKey(ch.tvgName);
+        if (tn && !normSet[tn]) {
+          normSet[tn] = true;
+          norms.push(tn);
+        }
+      }
+    }
+    return ids.join('\t') + '\n' + norms.join('\t');
+  }
+
+  function filterXmlBlocksFromChunk(chunk, allowedIds, allowedNorms, outParts, charBudget) {
+    var cPos = 0;
+    while (true) {
+      var cStart = chunk.indexOf('<channel ', cPos);
+      if (cStart === -1) break;
+      var cEnd = chunk.indexOf('</channel>', cStart + 9);
+      if (cEnd === -1) break;
+      var blockEnd = cEnd + 10;
+      cPos = blockEnd;
+
+      var cHeadEnd = chunk.indexOf('>', cStart + 8);
+      if (cHeadEnd === -1 || cHeadEnd > cEnd) continue;
+      var xmlChId = localCore.decodeEntities(localCore.extractAttr(chunk.slice(cStart, cHeadEnd + 1), 'id'));
+      if (!xmlChId) continue;
+      var xmlChLow = xmlChId.toLowerCase();
+      var keepCh = !!(allowedIds[xmlChId] || allowedIds[xmlChLow]);
+      if (!keepCh) {
+        var cBody = chunk.slice(cHeadEnd + 1, cEnd);
+        var disp = localCore.extractTagText(cBody, 'display-name');
+        if (disp) {
+          var nd = localCore.normalizeKey(disp);
+          if (nd && allowedNorms[nd]) {
+            keepCh = true;
+            allowedIds[xmlChId] = true;
+            allowedIds[xmlChLow] = true;
+          }
+        }
+      }
+      if (keepCh && charBudget.used < charBudget.max) {
+        var chBlock = chunk.slice(cStart, blockEnd);
+        outParts.push(chBlock);
+        charBudget.used += chBlock.length;
+      }
+    }
+
+    var pPos = 0;
+    while (true) {
+      var pStart = chunk.indexOf('<programme ', pPos);
+      if (pStart === -1) break;
+      var pClose = chunk.indexOf('</programme>', pStart + 11);
+      if (pClose === -1) break;
+      var pEnd = pClose + 12;
+      pPos = pEnd;
+
+      var pHeadEnd = chunk.indexOf('>', pStart + 11);
+      if (pHeadEnd === -1 || pHeadEnd > pClose) continue;
+      var rawCh = localCore.extractAttr(chunk.slice(pStart + 10, pHeadEnd), 'channel');
+      if (!rawCh) continue;
+      var keepProg = !!(
+        allowedIds[rawCh] ||
+        allowedIds[rawCh.toLowerCase()] ||
+        allowedNorms[localCore.normalizeKey(rawCh)]
+      );
+      if (keepProg && charBudget.used < charBudget.max) {
+        var pBlock = chunk.slice(pStart, pEnd);
+        outParts.push(pBlock);
+        charBudget.used += pBlock.length;
+      }
+    }
+  }
+
+  function decompressAndFilterGzipStream(bytes, channelsForFilter) {
+    var ds = new DecompressionStream('gzip');
+    var stream = new Blob([bytes]).stream().pipeThrough(ds);
+    if (!channelsForFilter || !channelsForFilter.length || typeof stream.getReader !== 'function' || typeof TextDecoder === 'undefined') {
+      return new Response(stream).text();
+    }
+
+    var allowedIds = Object.create(null);
+    var allowedNorms = Object.create(null);
+    for (var i = 0; i < channelsForFilter.length; i++) {
+      var ch = channelsForFilter[i];
+      if (!ch) continue;
+      if (ch.tvgId) {
+        allowedIds[ch.tvgId] = true;
+        allowedIds[String(ch.tvgId).toLowerCase()] = true;
+      }
+      var nn = ch.normName || localCore.normalizeKey(ch.name || '');
+      if (nn) allowedNorms[nn] = true;
+      if (ch.tvgName && ch.tvgName !== ch.name) {
+        var tn = localCore.normalizeKey(ch.tvgName);
+        if (tn) allowedNorms[tn] = true;
+      }
+    }
+
+    var reader = stream.getReader();
+    var decoder = new TextDecoder('utf-8');
+    var outParts = ['<tv>'];
+    var charBudget = { used: 0, max: 28 * 1024 * 1024 };
+    var carry = '';
+
+    function pump() {
+      return reader.read().then(function (step) {
+        if (step.done) {
+          var tail = carry + decoder.decode();
+          if (tail) {
+            filterXmlBlocksFromChunk(tail, allowedIds, allowedNorms, outParts, charBudget);
+          }
+          outParts.push('</tv>');
+          return outParts.join('\n');
+        }
+        var buf = carry + decoder.decode(step.value, { stream: true });
+        var lastProgClose = buf.lastIndexOf('</programme>');
+        var lastChClose = buf.lastIndexOf('</channel>');
+        var cutIdx = -1;
+        if (lastProgClose !== -1) cutIdx = lastProgClose + 12;
+        if (lastChClose !== -1 && lastChClose + 10 > cutIdx) cutIdx = lastChClose + 10;
+
+        if (cutIdx === -1) {
+          carry = buf.length > 131072 ? buf.slice(-131072) : buf;
+        } else {
+          var completePart = buf.slice(0, cutIdx);
+          carry = buf.slice(cutIdx);
+          filterXmlBlocksFromChunk(completePart, allowedIds, allowedNorms, outParts, charBudget);
+        }
+        return pump();
+      });
+    }
+
+    return pump();
+  }
+
   // Decompress gzipped ArrayBuffer if magic bytes 0x1f 0x8b are present (supports .xml.gz EPG feeds on 2017+ TVs!)
-  function decodeBufferSmart(buffer) {
+  function decodeBufferSmart(buffer, channelsForFilter) {
     var bytes = new Uint8Array(buffer);
     if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
       if (typeof DecompressionStream !== 'undefined') {
-        var ds = new DecompressionStream('gzip');
-        var stream = new Blob([bytes]).stream().pipeThrough(ds);
-        return new Response(stream).text();
+        return decompressAndFilterGzipStream(bytes, channelsForFilter);
       }
       if (global.pako && typeof global.pako.ungzip === 'function') {
         try {
@@ -508,6 +800,72 @@
   function canUseLocalProxy() {
     var proto = global.location && global.location.protocol;
     return proto === 'http:' || proto === 'https:';
+  }
+
+  function hasAndroidAsyncFetcher() {
+    return !!(
+      global.AndroidTvBridge &&
+      typeof global.AndroidTvBridge.fetchUrlAsync === 'function' &&
+      typeof global.AndroidTvBridge.takeFetchedText === 'function'
+    );
+  }
+
+  function hasAndroidFetcher() {
+    return !!(
+      global.AndroidTvBridge &&
+      typeof global.AndroidTvBridge.fetchUrlBase64 === 'function'
+    );
+  }
+
+  var androidFetchSeq = 0;
+  var pendingAndroidFetches = Object.create(null);
+
+  global.__onAndroidFetchReady = function (reqId, ok, errMsg) {
+    var entry = pendingAndroidFetches[reqId];
+    if (!entry) return;
+    delete pendingAndroidFetches[reqId];
+    if (!ok) {
+      entry.reject(new Error(errMsg || 'Android background fetch failed'));
+      return;
+    }
+    try {
+      var txt = global.AndroidTvBridge.takeFetchedText(reqId);
+      entry.resolve(txt || '');
+    } catch (e) {
+      entry.reject(e);
+    }
+  };
+
+  function fetchTextViaAndroidAsync(url, filterSpec) {
+    return new Promise(function (resolve, reject) {
+      var reqId = ++androidFetchSeq;
+      pendingAndroidFetches[reqId] = { resolve: resolve, reject: reject };
+      try {
+        if (filterSpec && typeof global.AndroidTvBridge.fetchUrlFilteredAsync === 'function') {
+          global.AndroidTvBridge.fetchUrlFilteredAsync(reqId, String(url || ''), String(filterSpec));
+        } else {
+          global.AndroidTvBridge.fetchUrlAsync(reqId, String(url || ''));
+        }
+      } catch (e) {
+        delete pendingAndroidFetches[reqId];
+        reject(e);
+      }
+    });
+  }
+
+  function fetchViaAndroidBridge(url) {
+    return yieldToMain().then(function () {
+      var b64 = global.AndroidTvBridge.fetchUrlBase64(String(url || ''));
+      if (!b64 || b64.indexOf('ERROR:') === 0) {
+        throw new Error(b64 ? b64.slice(6) : 'Android native fetch failed');
+      }
+      var bin = global.atob(b64);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i);
+      }
+      return bytes.buffer;
+    });
   }
 
   // Universal binary XHR loader with transient-error retry (handles TV Wi-Fi wake hiccups cleanly)
@@ -546,7 +904,13 @@
     });
   }
 
-  function fetchTextSmart(url, useProxyPref) {
+  function fetchTextSmart(url, useProxyPref, channelsForFilter) {
+    var filterSpec = channelsForFilter && channelsForFilter.length ? buildChannelFilterSpec(channelsForFilter) : '';
+    // On Android TV, use background Java thread + native C GZIPInputStream first so WebView main thread is 100% unblocked!
+    if (hasAndroidAsyncFetcher() && /^https?:\/\//i.test(url)) {
+      return fetchTextViaAndroidAsync(url, filterSpec);
+    }
+
     var targetUrl = url;
     if (useProxyPref && canUseLocalProxy() && /^https?:\/\//i.test(url)) {
       targetUrl = '/proxy?url=' + encodeURIComponent(url);
@@ -554,12 +918,17 @@
 
     return xhrArrayBuffer(targetUrl)
       .catch(function (err) {
+        if (hasAndroidFetcher() && /^https?:\/\//i.test(url)) {
+          return fetchViaAndroidBridge(url);
+        }
         if (!useProxyPref && canUseLocalProxy() && /^https?:\/\//i.test(url)) {
           return xhrArrayBuffer('/proxy?url=' + encodeURIComponent(url));
         }
         throw err;
       })
-      .then(decodeBufferSmart);
+      .then(function (buf) {
+        return decodeBufferSmart(buf, channelsForFilter);
+      });
   }
 
   function getChannelBucketKey(channel) {

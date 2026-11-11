@@ -210,6 +210,10 @@ consumer USB "userwidget" sideloading.
 EOF
 
 echo "💾 USB bundle ready at: $USB_DIR"
+if [ -f "$ROOT_DIR/dist/vertIPTV-tv.apk" ]; then
+  cp "$ROOT_DIR/dist/vertIPTV-tv.apk" "$USB_DIR/vertIPTV-tv.apk"
+  echo "🤖 Included Android TV APK in USB bundle: $USB_DIR/vertIPTV-tv.apk"
+fi
 (cd "$USB_DIR" && rm -f "$ROOT_DIR/dist/vertIPTV-usb-kit.zip" && zip -qr "$ROOT_DIR/dist/vertIPTV-usb-kit.zip" .)
 echo "📦 Portable USB & Windows/Mac/Phone kit zipped at: $ROOT_DIR/dist/vertIPTV-usb-kit.zip"
 echo "🚀 Ready to install onto your Samsung TV in 1 command (no Tizen Studio needed):"

@@ -3,8 +3,19 @@
 
   var NS = (global.vertIPTV = global.vertIPTV || {});
 
+  function hasAndroidUsb() {
+    return (
+      typeof global.AndroidTvBridge !== 'undefined' &&
+      global.AndroidTvBridge &&
+      typeof global.AndroidTvBridge.scanUsbDrives === 'function'
+    );
+  }
+
   function hasTizenFs() {
-    return typeof global.tizen !== 'undefined' && global.tizen && global.tizen.filesystem;
+    return (
+      (typeof global.tizen !== 'undefined' && global.tizen && global.tizen.filesystem) ||
+      hasAndroidUsb()
+    );
   }
 
   function readTizenFileText(fileObj) {
@@ -75,10 +86,29 @@
     });
   }
 
-  // Scans mounted USB pendrives on Samsung Tizen OS for iptv.json or *.m3u + *.xml
+  // Scans mounted USB pendrives on Samsung Tizen OS or Android TV / Fire TV for iptv.json or *.m3u + *.xml
   function scanUsbPendrive() {
+    if (hasAndroidUsb()) {
+      return new Promise(function (resolve) {
+        try {
+          var rawJson = global.AndroidTvBridge.scanUsbDrives();
+          var parsed = rawJson ? JSON.parse(rawJson) : null;
+          if (parsed && typeof parsed === 'object') {
+            resolve(parsed);
+          } else {
+            resolve({ available: true, found: false, reason: 'No USB pendrive detected in Android TV port' });
+          }
+        } catch (err) {
+          resolve({
+            available: false,
+            reason: 'Android USB scan error: ' + (err && err.message ? err.message : String(err))
+          });
+        }
+      });
+    }
+
     if (!hasTizenFs()) {
-      return Promise.resolve({ available: false, reason: 'Not running on Tizen TV filesystem' });
+      return Promise.resolve({ available: false, reason: 'Not running on Tizen or Android TV filesystem' });
     }
 
     return new Promise(function (resolve) {

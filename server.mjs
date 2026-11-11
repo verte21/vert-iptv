@@ -172,9 +172,10 @@ function renderTvInstallerHtml() {
     </div>
 
     <div class="card">
-      <h2>Direct Build &amp; USB Playlist Downloads</h2>
-      <p>Retail Samsung TVs block unsigned USB <code>.wgt</code> installation, so use the 1-Click button above to install the app once. You can still drop <code>iptv.json</code> onto a FAT32 USB stick for 1-click playlist import, or upload <code>vertIPTV.wgt</code> to <code>http://&lt;TV_IP&gt;:8077/upload</code> after arming TV-Store.</p>
+      <h2>Direct Build &amp; USB Playlist Downloads (Samsung Tizen + Android TV)</h2>
+      <p>Download the signed <code>vertIPTV-tv.apk</code> for Android TV / Google TV / Fire TV / Xiaomi / Sony / TCL / Philips TVs (via USB stick, <em>Send Files to TV</em>, or <em>Downloader</em> at <code>http://${hostIp}:${PORT}/download/vertIPTV.apk</code>), or download the Samsung Tizen <code>vertIPTV.wgt</code> &amp; <code>iptv.json</code>.</p>
       <div class="btn-row">
+        <a class="btn-link" href="/download/vertIPTV-${Date.now()}.apk" download="vertIPTV-tv-${Date.now()}.apk">Download Android TV APK (vertIPTV-tv.apk)</a>
         <a class="btn-link secondary" href="/download/vertIPTV.wgt" download="vertIPTV.wgt">Download Signed vertIPTV.wgt</a>
         <a class="btn-link secondary" href="/download/iptv.json" download="iptv.json">Download USB iptv.json</a>
       </div>
@@ -694,6 +695,90 @@ const server = http.createServer((req, res) => {
       'Cache-Control': 'no-cache'
     });
     res.end(payload);
+    return;
+  }
+
+  if (
+    reqUrl.pathname === '/download/vertIPTV.apk' ||
+    reqUrl.pathname === '/download/vertIPTV-tv.apk' ||
+    reqUrl.pathname === '/vertIPTV.apk' ||
+    reqUrl.pathname === '/apk' ||
+    reqUrl.pathname === '/apk2' ||
+    /^\/apk\d*$/i.test(reqUrl.pathname) ||
+    /^\/download\/vertIPTV[^/]*\.apk$/i.test(reqUrl.pathname)
+  ) {
+    const apkPath = path.join(__dirname, 'dist', 'vertIPTV-tv.apk');
+    const serveApk = () => {
+      if (!fs.existsSync(apkPath)) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Failed to build vertIPTV-tv.apk');
+        return;
+      }
+      if (req.socket && typeof req.socket.setNoDelay === 'function') {
+        req.socket.setNoDelay(true);
+      }
+      const stat = fs.statSync(apkPath);
+      const total = stat.size;
+      const rangeHeader = req.headers.range;
+      const logLine = `[APK] ${new Date().toISOString()} ${req.socket?.remoteAddress || ''} ${req.method} ${reqUrl.pathname} range=${rangeHeader || 'none'} size=${total} ua=${req.headers['user-agent'] || ''}\n`;
+      try {
+        fs.appendFileSync('/tmp/vertiptv-apk.log', logLine);
+      } catch {}
+
+      if (rangeHeader && /^bytes=\d*-\d*$/.test(rangeHeader.trim())) {
+        const parts = rangeHeader.replace(/bytes=/, '').split('-');
+        const start = parts[0] ? parseInt(parts[0], 10) : 0;
+        const end = parts[1] ? Math.min(parseInt(parts[1], 10), total - 1) : total - 1;
+        if (start >= total || start > end) {
+          res.writeHead(416, {
+            'Content-Range': `bytes */${total}`,
+            'Cache-Control': 'no-store'
+          });
+          res.end();
+          return;
+        }
+        const chunkLen = end - start + 1;
+        res.writeHead(206, {
+          'Content-Type': 'application/vnd.android.package-archive',
+          'Content-Length': chunkLen,
+          'Content-Range': `bytes ${start}-${end}/${total}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Disposition': 'attachment; filename="vertIPTV-tv.apk"',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+        });
+        if (req.method === 'HEAD') {
+          res.end();
+          return;
+        }
+        fs.createReadStream(apkPath, { start, end }).pipe(res);
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Content-Length': total,
+        'Accept-Ranges': 'bytes',
+        'Content-Disposition': 'attachment; filename="vertIPTV-tv.apk"',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+      });
+      if (req.method === 'HEAD') {
+        res.end();
+        return;
+      }
+      const stream = fs.createReadStream(apkPath);
+      res.on('finish', () => {
+        try {
+          fs.appendFileSync('/tmp/vertiptv-apk.log', `[APK-DONE] ${new Date().toISOString()} finish total=${total}\n`);
+        } catch {}
+      });
+      stream.pipe(res);
+    };
+
+    if (fs.existsSync(apkPath)) {
+      serveApk();
+    } else {
+      execFile('bash', [path.join(__dirname, 'scripts', 'build-apk.sh')], { cwd: __dirname }, () => serveApk());
+    }
     return;
   }
 

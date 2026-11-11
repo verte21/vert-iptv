@@ -27,7 +27,16 @@
   }
 
   var NS = (global.vertIPTV = global.vertIPTV || {});
-  var ROW_HEIGHT = 68;
+  var ROW_HEIGHT = (global.innerWidth && global.innerWidth <= 1400) ? 32 : 50;
+
+  function syncRowHeightForViewport() {
+    var nextH = (global.innerWidth && global.innerWidth <= 1400) ? 32 : 50;
+    if (nextH !== ROW_HEIGHT) {
+      ROW_HEIGHT = nextH;
+      return true;
+    }
+    return false;
+  }
 
   var CATCHUP_MODES = [
     { value: 'auto', label: 'Auto-Detect (M3U / XC / Flussonic / Shift)' },
@@ -54,8 +63,12 @@
       muted: '🔇 Muted',
       clickForSound: '🔇 Click / Key for Sound',
       favoriteBtn: '★ Favorite',
+      refreshEpgBtn: '↻ EPG',
       usbBtn: 'USB Pendrive',
       settingsBtn: 'Playlist & EPG',
+      toastRefreshingEpg: '↻ Refreshing EPG...',
+      toastEpgUpdated: '✓ EPG updated ({c} ch)',
+      toastNoEpgSource: 'No EPG URL configured — add XMLTV URL in Settings',
       categoriesTitle: 'Categories',
       allChannels: 'All Channels',
       favoritesGroup: '★ Favorites',
@@ -85,7 +98,7 @@
       osdUpNext: 'Up Next',
       osdLiveBroadcast: 'Live Broadcast',
       osdCatchupFallback: 'Archive Playback',
-      osdLiveHintText: 'Press ◀ Left for EPG · OK for Channel Guide',
+      osdLiveHintText: '',
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Scrub ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live TV',
       osdLiveControlsHtml:
@@ -105,6 +118,9 @@
       lblCycleDays: 'Archive Window (OK)',
       lblCycleOffset: 'EPG Time Shift (OK)',
       lblCycleLang: 'Language (OK)',
+      lblCycleSearch: 'Search Bar (OK)',
+      searchOn: 'On',
+      searchOff: 'Off',
       usbHelpHtml:
         '<strong>Zero-Typing Pendrive Tip:</strong> Put <code>iptv.json</code> with ' +
         '<code>{"m3uUrl":"...","epgUrl":"..."}</code> (or raw <code>playlist.m3u</code> + <code>epg.xml</code>) on a FAT32 USB stick, plug it into your Samsung TV, and select <strong>Scan USB Pendrive</strong>.',
@@ -141,8 +157,12 @@
       muted: '🔇 Stumm',
       clickForSound: '🔇 Taste für Ton',
       favoriteBtn: '★ Favorit',
+      refreshEpgBtn: '↻ EPG',
       usbBtn: 'USB-Stick',
       settingsBtn: 'Playlist & EPG',
+      toastRefreshingEpg: '↻ EPG wird aktualisiert...',
+      toastEpgUpdated: '✓ EPG geladen ({c} Sender)',
+      toastNoEpgSource: 'Keine EPG-URL konfiguriert',
       categoriesTitle: 'Kategorien',
       allChannels: 'Alle Sender',
       favoritesGroup: '★ Favoriten',
@@ -172,7 +192,7 @@
       osdUpNext: 'Danach',
       osdLiveBroadcast: 'Live-Übertragung',
       osdCatchupFallback: 'Archiv Wiedergabe',
-      osdLiveHintText: '◀ Links für EPG · OK für Senderliste',
+      osdLiveHintText: '',
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Spulen ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pause/Play &nbsp;·&nbsp; <kbd>▲▼</kbd> Guide &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Live-TV',
       osdLiveControlsHtml:
@@ -192,6 +212,9 @@
       lblCycleDays: 'Archiv-Zeitraum (OK)',
       lblCycleOffset: 'EPG-Zeitversatz (OK)',
       lblCycleLang: 'Sprache (OK)',
+      lblCycleSearch: 'Suchfeld (OK)',
+      searchOn: 'Ein',
+      searchOff: 'Aus',
       usbHelpHtml:
         '<strong>USB-Stick Schnellstart:</strong> Speichere <code>iptv.json</code> mit ' +
         '<code>{"m3uUrl":"...","epgUrl":"..."}</code> (oder <code>playlist.m3u</code> + <code>epg.xml</code>) auf einem FAT32-USB-Stick und wähle <strong>USB-Stick scannen</strong>.',
@@ -228,8 +251,12 @@
       muted: '🔇 Wyciszono',
       clickForSound: '🔇 Kliknij dla dźwięku',
       favoriteBtn: '★ Ulubione',
+      refreshEpgBtn: '↻ EPG',
       usbBtn: 'Pendrive USB',
       settingsBtn: 'Lista i EPG',
+      toastRefreshingEpg: '↻ Odświeżanie EPG...',
+      toastEpgUpdated: '✓ Załadowano EPG ({c} kan.)',
+      toastNoEpgSource: 'Brak adresu EPG — dodaj URL XMLTV w Ustawieniach',
       categoriesTitle: 'Kategorie',
       allChannels: 'Wszystkie kanały',
       favoritesGroup: '★ Ulubione',
@@ -259,7 +286,7 @@
       osdUpNext: 'Następnie',
       osdLiveBroadcast: 'Transmisja na żywo',
       osdCatchupFallback: 'Odtwarzanie z archiwum',
-      osdLiveHintText: '◀ W lewo: Program TV · OK: Lista kanałów',
+      osdLiveHintText: '',
       osdArchiveControlsHtml:
         '<kbd>◀▶</kbd> Przewiń ±30s &nbsp;·&nbsp; <kbd>OK</kbd> Pauza/Start &nbsp;·&nbsp; <kbd>▲▼</kbd> Przewodnik &nbsp;·&nbsp; <kbd>BACK/ESC</kbd> Na żywo',
       osdLiveControlsHtml:
@@ -279,6 +306,9 @@
       lblCycleDays: 'Okno archiwum (OK)',
       lblCycleOffset: 'Przesunięcie EPG (OK)',
       lblCycleLang: 'Język / Language (OK)',
+      lblCycleSearch: 'Wyszukiwarka (OK)',
+      searchOn: 'Wł.',
+      searchOff: 'Wył.',
       usbHelpHtml:
         '<strong>Szybki import z USB (bez pisania na pilocie):</strong> Wgraj plik <code>iptv.json</code> z ' +
         '<code>{"m3uUrl":"...","epgUrl":"..."}</code> (lub <code>playlist.m3u</code> + <code>epg.xml</code>) na pendrive FAT32, włóż do TV i wybierz <strong>Skanuj pendrive USB</strong>.',
@@ -337,6 +367,7 @@
     programsRenderedFocused: -2,
     rawGroups: [],
     displayGroups: [],
+    favoriteChannels: [],
     filteredChannels: [],
     epgByBucket: Object.create(null),
     isDemoData: false,
@@ -390,7 +421,11 @@
     numpadTimer: null,
     toastTimer: null,
     backExitArmedAt: 0,
-    previewSyncTimer: null
+    previewSyncTimer: null,
+    lastKeyActivityMs: 0,
+    deferredEpgSaveTimer: null,
+    streamHasStartedPlaying: false,
+    bufferingSpinnerTimer: null
   };
 
   var player = null;
@@ -416,18 +451,46 @@
     return LANG_OPTS[0];
   }
 
+  var PAD2_TABLE = (function () {
+    var arr = new Array(60);
+    for (var i = 0; i < 60; i++) {
+      arr[i] = i < 10 ? '0' + i : String(i);
+    }
+    return arr;
+  })();
+
+  var cachedTzHourBucket = -1;
+  var cachedTzOffsetSec = 0;
+
+  function getLocalOffsetSecFor(epochSec) {
+    var hourBucket = (epochSec / 3600) | 0;
+    if (hourBucket !== cachedTzHourBucket) {
+      cachedTzHourBucket = hourBucket;
+      cachedTzOffsetSec = -new Date(epochSec * 1000).getTimezoneOffset() * 60;
+    }
+    return cachedTzOffsetSec;
+  }
+
   function pad2(n) {
-    return n < 10 ? '0' + n : String(n);
+    var idx = n | 0;
+    return idx >= 0 && idx < 60 ? PAD2_TABLE[idx] : (n < 10 ? '0' + n : String(n));
   }
 
   function formatClock(epochSec) {
-    var d = new Date(epochSec * 1000);
-    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    var sec = Math.floor(Number(epochSec) || 0);
+    var localSec = (sec + getLocalOffsetSecFor(sec)) % 86400;
+    if (localSec < 0) localSec += 86400;
+    var totalMin = (localSec / 60) | 0;
+    return PAD2_TABLE[(totalMin / 60) | 0] + ':' + PAD2_TABLE[totalMin % 60];
   }
 
   function formatClockWithSec(epochSec) {
-    var d = new Date(epochSec * 1000);
-    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+    var sec = Math.floor(Number(epochSec) || 0);
+    var localSec = (sec + getLocalOffsetSecFor(sec)) % 86400;
+    if (localSec < 0) localSec += 86400;
+    var s = localSec % 60;
+    var totalMin = (localSec / 60) | 0;
+    return PAD2_TABLE[(totalMin / 60) | 0] + ':' + PAD2_TABLE[totalMin % 60] + ':' + PAD2_TABLE[s];
   }
 
   function formatShortDay(epochSec) {
@@ -453,21 +516,40 @@
     return clean.slice(0, 3).toUpperCase() || 'TV';
   }
 
-  // Zero-jump container scrolling compatible with 2017 Chromium M47 (no scrollIntoView object options needed)
+  // Zero-reflow container scrolling (uses offsetTop/offsetHeight instead of synchronous getBoundingClientRect!)
   function scrollChildIntoContainer(container, child, centerIt) {
     if (!container || !child) return;
-    var cRect = container.getBoundingClientRect();
-    var eRect = child.getBoundingClientRect();
-    var cHeight = cRect.height || container.clientHeight || 600;
-    if (centerIt) {
-      var offsetInside = (eRect.top - cRect.top) + container.scrollTop;
-      container.scrollTop = Math.max(0, Math.round(offsetInside - cHeight * 0.42));
+    var cHeight = container.clientHeight;
+    if (!cHeight) {
+      requestAnimationFrame(function () {
+        if (!container || !child) return;
+        var rHeight = container.clientHeight || 500;
+        var rTop = child.offsetTop;
+        if (child.offsetParent && child.offsetParent !== container) {
+          rTop -= container.offsetTop;
+        }
+        var rChildH = child.offsetHeight || 40;
+        if (centerIt) {
+          container.scrollTop = Math.max(0, Math.round(rTop - (rHeight - rChildH) * 0.5));
+        }
+      });
       return;
     }
-    if (eRect.top < cRect.top + 6) {
-      container.scrollTop -= (cRect.top - eRect.top) + 10;
-    } else if (eRect.bottom > cRect.bottom - 6) {
-      container.scrollTop += (eRect.bottom - cRect.bottom) + 10;
+    var viewTop = container.scrollTop;
+    var childTop = child.offsetTop;
+    if (child.offsetParent && child.offsetParent !== container) {
+      childTop -= container.offsetTop;
+    }
+    var childH = child.offsetHeight || 40;
+    var childBottom = childTop + childH;
+    if (centerIt) {
+      container.scrollTop = Math.max(0, Math.round(childTop - (cHeight - childH) * 0.5));
+      return;
+    }
+    if (childTop < viewTop + 6) {
+      container.scrollTop = Math.max(0, childTop - 10);
+    } else if (childBottom > viewTop + cHeight - 6) {
+      container.scrollTop = childBottom - cHeight + 10;
     }
   }
 
@@ -514,11 +596,14 @@
     }
   }
 
-  // TV-Smart Input Locking: prevents Samsung TV IME keyboard from hijacking arrows until OK is pressed!
+  // TV-Smart Input Locking: prevents Samsung/Android TV IME keyboard from hijacking arrows until OK is pressed!
   function unlockTvInput(inputEl) {
     if (!inputEl) return;
     inputEl.readOnly = false;
     inputEl.classList.add('is-editing');
+    if (global.AndroidTvBridge && typeof global.AndroidTvBridge.setEditingInput === 'function') {
+      try { global.AndroidTvBridge.setEditingInput(true); } catch (_) {}
+    }
     inputEl.focus();
     try {
       var len = inputEl.value.length;
@@ -530,6 +615,9 @@
     if (!inputEl || !inputEl.getAttribute('data-tv-input')) return;
     inputEl.readOnly = true;
     inputEl.classList.remove('is-editing');
+    if (global.AndroidTvBridge && typeof global.AndroidTvBridge.setEditingInput === 'function') {
+      try { global.AndroidTvBridge.setEditingInput(false); } catch (_) {}
+    }
   }
 
   function lockAllTvInputs() {
@@ -548,16 +636,72 @@
   }
 
   function getNowAndNextProgram(channel, nowSec) {
+    if (!channel) return { now: null, next: null };
+    var epgGen = state.epgGen || 0;
+    if (
+      channel._epgGen === epgGen &&
+      channel._nowCacheUntil &&
+      nowSec >= channel._nowCacheFrom &&
+      nowSec < channel._nowCacheUntil &&
+      channel._cachedNowNext
+    ) {
+      return channel._cachedNowNext;
+    }
     var progs = getProgramsForChannel(channel);
-    if (!progs.length) return { now: null, next: null };
-    var idx = NS.Parser.findProgramIndexAt(progs, nowSec);
+    var res;
+    if (!progs.length) {
+      res = { now: null, next: null };
+      channel._epgGen = epgGen;
+      channel._nowCacheFrom = nowSec;
+      channel._nowCacheUntil = nowSec + 180;
+      channel._cachedNowNext = res;
+      return res;
+    }
+    var idx = -1;
+    var hint = channel._epgHintIdx;
+    if (hint !== undefined && hint >= 0 && hint < progs.length) {
+      if (nowSec >= progs[hint].s && nowSec < progs[hint].e) {
+        idx = hint;
+      } else if (hint + 1 < progs.length && nowSec >= progs[hint + 1].s && nowSec < progs[hint + 1].e) {
+        idx = hint + 1;
+      }
+    }
+    if (idx === -1) {
+      idx = NS.Parser.findProgramIndexAt(progs, nowSec);
+    }
     if (idx !== -1) {
-      return {
-        now: progs[idx],
+      channel._epgHintIdx = idx;
+      var nowP = progs[idx];
+      res = {
+        now: nowP,
         next: idx + 1 < progs.length ? progs[idx + 1] : null
       };
+      channel._epgGen = epgGen;
+      channel._nowCacheFrom = nowP.s;
+      channel._nowCacheUntil = nowP.e;
+      channel._cachedNowNext = res;
+      return res;
     }
-    return { now: null, next: null };
+    res = { now: null, next: null };
+    channel._epgGen = epgGen;
+    channel._nowCacheFrom = nowSec;
+    channel._nowCacheUntil = nowSec + 90;
+    channel._cachedNowNext = res;
+    return res;
+  }
+
+  function rebuildFavoriteChannels() {
+    var favs = [];
+    var all = state.allChannels;
+    if (state.favorites && state.favorites.size > 0) {
+      for (var i = 0; i < all.length; i++) {
+        var c = all[i];
+        if (state.favorites.has(c.key) || (c.tvgId && state.favorites.has(c.tvgId))) {
+          favs.push(c);
+        }
+      }
+    }
+    state.favoriteChannels = favs;
   }
 
   function indexChannelsState() {
@@ -577,13 +721,15 @@
     }
     state.channelByKey = byKey;
     state.channelsByGroup = byGroup;
+    rebuildFavoriteChannels();
     state.filterGen = (state.filterGen || 0) + 1;
   }
 
   function rebuildDisplayGroups() {
+    rebuildFavoriteChannels();
     var list = [
       { id: '__all__', name: t('allChannels'), count: state.allChannels.length },
-      { id: '__fav__', name: t('favoritesGroup'), count: state.favorites.size },
+      { id: '__fav__', name: t('favoritesGroup'), count: state.favoriteChannels.length },
       { id: '__recent__', name: t('recentGroup'), count: state.recents.length }
     ];
     for (var i = 0; i < state.rawGroups.length; i++) {
@@ -605,9 +751,7 @@
     if (!grp || grp.id === '__all__') {
       base = state.allChannels;
     } else if (grp.id === '__fav__') {
-      base = state.allChannels.filter(function (c) {
-        return state.favorites.has(c.key) || (c.tvgId && state.favorites.has(c.tvgId));
-      });
+      base = state.favoriteChannels || [];
     } else if (grp.id === '__recent__') {
       for (var r = 0; r < state.recents.length; r++) {
         var rCh = state.channelByKey[state.recents[r]];
@@ -678,12 +822,22 @@
       dom.groupsList.children.length === state.displayGroups.length
     ) {
       var rows = dom.groupsList.children;
-      for (var r = 0; r < rows.length; r++) {
+      var changedGroupIndices = [
+        state.groupsRenderedSelected,
+        state.selectedGroupIdx,
+        state.groupsRenderedFocused,
+        effFocused
+      ];
+      for (var gIdx = 0; gIdx < changedGroupIndices.length; gIdx++) {
+        var r = changedGroupIndices[gIdx];
+        if (r === undefined || r < 0 || r >= rows.length) continue;
         var rCls = 'group-row';
         if (r === state.selectedGroupIdx) rCls += ' is-selected';
         if (r === effFocused) rCls += ' is-focused';
-        rows[r].className = rCls;
-        rows[r].setAttribute('aria-selected', String(r === state.selectedGroupIdx));
+        if (rows[r].className !== rCls) {
+          rows[r].className = rCls;
+          rows[r].setAttribute('aria-selected', String(r === state.selectedGroupIdx));
+        }
       }
       state.groupsRenderedSelected = state.selectedGroupIdx;
       state.groupsRenderedFocused = effFocused;
@@ -737,125 +891,240 @@
     return state.favorites.has(ch.key) || (ch.tvgId && state.favorites.has(ch.tvgId));
   }
 
+  var CHANNEL_POOL_SIZE = 24;
+  var channelRowPool = [];
+  var emptyChannelMsgEl = null;
+
+  function ensureChannelRowPool(poolEl) {
+    if (channelRowPool.length === CHANNEL_POOL_SIZE) return;
+    poolEl.innerHTML = '';
+    poolEl.style.webkitTransform = 'none';
+    poolEl.style.transform = 'none';
+    channelRowPool = [];
+
+    emptyChannelMsgEl = document.createElement('div');
+    emptyChannelMsgEl.style.padding = '20px';
+    emptyChannelMsgEl.style.color = '#94a3b8';
+    emptyChannelMsgEl.style.fontSize = '14px';
+    emptyChannelMsgEl.style.display = 'none';
+    poolEl.appendChild(emptyChannelMsgEl);
+
+    for (var p = 0; p < CHANNEL_POOL_SIZE; p++) {
+      var rowEl = document.createElement('div');
+      rowEl.className = 'ch-row is-pooled';
+      rowEl.setAttribute('role', 'option');
+      rowEl.style.display = 'none';
+
+      var numEl = document.createElement('span');
+      numEl.className = 'ch-num';
+      rowEl.appendChild(numEl);
+
+      var infoEl = document.createElement('div');
+      infoEl.className = 'ch-info';
+
+      var titleLineEl = document.createElement('div');
+      titleLineEl.className = 'ch-title-line';
+
+      var favEl = document.createElement('span');
+      favEl.className = 'ch-fav';
+      favEl.setAttribute('aria-label', 'Favorite');
+      favEl.textContent = '★';
+      favEl.style.display = 'none';
+      titleLineEl.appendChild(favEl);
+
+      var nameEl = document.createElement('span');
+      nameEl.className = 'ch-name';
+      titleLineEl.appendChild(nameEl);
+      infoEl.appendChild(titleLineEl);
+
+      var progEl = document.createElement('div');
+      progEl.className = 'ch-now-prog';
+      infoEl.appendChild(progEl);
+
+      var barEl = document.createElement('div');
+      barEl.className = 'ch-mini-bar';
+      barEl.style.display = 'none';
+      var barFillEl = document.createElement('div');
+      barFillEl.className = 'ch-mini-bar-fill';
+      barEl.appendChild(barFillEl);
+      infoEl.appendChild(barEl);
+
+      rowEl.appendChild(infoEl);
+      poolEl.appendChild(rowEl);
+
+      channelRowPool.push({
+        el: rowEl,
+        numEl: numEl,
+        favEl: favEl,
+        nameEl: nameEl,
+        progEl: progEl,
+        barEl: barEl,
+        barFillEl: barFillEl,
+        idx: -1,
+        key: '',
+        cls: 'ch-row is-pooled',
+        visible: false,
+        fav: false,
+        nowTitle: '',
+        pct: 0,
+        rowH: 0
+      });
+    }
+  }
+
   function renderChannelsVirtual(forceFull) {
     var vp = dom.channelsViewport;
     var pool = dom.channelsPool;
     if (!vp || !pool) return;
 
+    ensureChannelRowPool(pool);
+
     var total = state.filteredChannels.length;
     if (!total) {
+      for (var h = 0; h < CHANNEL_POOL_SIZE; h++) {
+        if (channelRowPool[h].visible) {
+          channelRowPool[h].el.style.display = 'none';
+          channelRowPool[h].visible = false;
+          channelRowPool[h].idx = -1;
+        }
+      }
+      if (emptyChannelMsgEl) {
+        emptyChannelMsgEl.textContent = t('noChannelsMatch');
+        emptyChannelMsgEl.style.display = 'block';
+      }
       state.poolFilterGen = state.filterGen;
       state.poolStartIdx = 0;
       state.poolEndIdx = 0;
-      pool.style.webkitTransform = 'translate3d(0,0,0)';
-      pool.style.transform = 'translate3d(0,0,0)';
-      pool.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:15px;">' + escapeHtml(t('noChannelsMatch')) + '</div>';
       return;
     }
 
-    var scrollTop = vp.scrollTop;
-    var viewH = vp.clientHeight || 720;
-    var rawFirst = Math.floor(scrollTop / ROW_HEIGHT);
-    var startIdx = Math.max(0, Math.floor((rawFirst - 4) / 6) * 6);
-    var visibleCount = Math.ceil(viewH / ROW_HEIGHT) + 16;
-    var endIdx = Math.min(total, startIdx + visibleCount);
-    var isPaneCh = state.activePane === 'channels';
+    if (emptyChannelMsgEl && emptyChannelMsgEl.style.display !== 'none') {
+      emptyChannelMsgEl.style.display = 'none';
+    }
 
-    // Fast path 1: Exact same virtual window & focus state (e.g. duplicate scroll event after keydown)
+    var scrollTop = vp.scrollTop;
+    var viewH = vp.clientHeight || 540;
+    var visibleRows = Math.ceil(viewH / ROW_HEIGHT);
+    var winSize = Math.min(CHANNEL_POOL_SIZE, Math.max(16, visibleRows + 5));
+    var rawFirst = Math.floor(scrollTop / ROW_HEIGHT);
+    var startIdx = Math.max(0, Math.min(Math.max(0, total - winSize), rawFirst - 2));
+    var endIdx = Math.min(total, startIdx + winSize);
+    var isPaneCh = state.activePane === 'channels';
+    var epgGen = state.epgGen || 0;
+
     if (
       !forceFull &&
       state.poolFilterGen === state.filterGen &&
+      state.poolEpgGen === epgGen &&
       state.poolStartIdx === startIdx &&
       state.poolEndIdx === endIdx &&
       state.poolFocusedIdx === state.focusedChannelIdx &&
       state.poolActivePane === isPaneCh &&
-      state.poolPlayingKey === state.playingChannelKey
+      state.poolPlayingKey === state.playingChannelKey &&
+      state.poolRowH === ROW_HEIGHT
     ) {
       return;
     }
-
-    // Fast path 2: Same virtual window [startIdx, endIdx), only focus/playing highlight changed -> update classes in-place without destroying <img> logos!
-    if (
-      !forceFull &&
-      state.poolFilterGen === state.filterGen &&
-      state.poolStartIdx === startIdx &&
-      state.poolEndIdx === endIdx &&
-      pool.children &&
-      pool.children.length === endIdx - startIdx
-    ) {
-      var children = pool.children;
-      for (var cIdx = 0; cIdx < children.length; cIdx++) {
-        var itemIdx = startIdx + cIdx;
-        var rowCh = state.filteredChannels[itemIdx];
-        var rowFocused = isPaneCh && itemIdx === state.focusedChannelIdx;
-        var rowSelected = itemIdx === state.focusedChannelIdx;
-        var rowPlaying = rowCh && rowCh.key === state.playingChannelKey;
-        var rowCls = 'ch-row';
-        if (rowPlaying) rowCls += ' is-playing';
-        if (rowSelected && !rowFocused) rowCls += ' is-selected';
-        if (rowFocused) rowCls += ' is-focused';
-        children[cIdx].className = rowCls;
-        children[cIdx].setAttribute('aria-selected', String(rowSelected));
-      }
-      state.poolFocusedIdx = state.focusedChannelIdx;
-      state.poolActivePane = isPaneCh;
-      state.poolPlayingKey = state.playingChannelKey;
-      return;
-    }
-
-    var translateVal = 'translate3d(0,' + startIdx * ROW_HEIGHT + 'px,0)';
-    pool.style.webkitTransform = translateVal;
-    pool.style.transform = translateVal;
 
     var nowSec = Math.floor(Date.now() / 1000);
-    var html = '';
+    var liveFallbackLabel = t('liveTvStream');
 
     for (var i = startIdx; i < endIdx; i++) {
+      var slot = channelRowPool[i % CHANNEL_POOL_SIZE];
       var ch = state.filteredChannels[i];
       var isFocused = isPaneCh && i === state.focusedChannelIdx;
       var isSelected = i === state.focusedChannelIdx;
       var isPlaying = ch.key === state.playingChannelKey;
 
-      var cls = 'ch-row';
+      var cls = 'ch-row is-pooled';
       if (isPlaying) cls += ' is-playing';
       if (isSelected && !isFocused) cls += ' is-selected';
       if (isFocused) cls += ' is-focused';
 
+      if (!slot.visible) {
+        slot.el.style.display = '';
+        slot.visible = true;
+      }
+
+      if (slot.cls !== cls) {
+        slot.el.className = cls;
+        slot.cls = cls;
+        slot.el.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      }
+
+      // If this slot already holds this exact channel index at the current ROW_HEIGHT, skip DOM text/transform updates!
+      if (
+        !forceFull &&
+        slot.idx === i &&
+        slot.key === ch.key &&
+        slot.rowH === ROW_HEIGHT &&
+        state.poolEpgGen === epgGen
+      ) {
+        continue;
+      }
+
+      if (slot.idx !== i || slot.rowH !== ROW_HEIGHT) {
+        var yPx = i * ROW_HEIGHT;
+        slot.el.style.top = yPx + 'px';
+        slot.el.setAttribute('data-ch-idx', String(i));
+        slot.idx = i;
+        slot.rowH = ROW_HEIGHT;
+      }
+
+      if (slot.key !== ch.key) {
+        slot.key = ch.key;
+        slot.numEl.textContent = String(ch.num);
+        slot.nameEl.textContent = ch.name;
+      }
+
+      var fav = isChannelFav(ch);
+      if (slot.fav !== fav) {
+        slot.fav = fav;
+        slot.favEl.style.display = fav ? '' : 'none';
+      }
+
       var sched = getNowAndNextProgram(ch, nowSec);
-      var nowTitle = sched.now ? sched.now.t : t('liveTvStream');
+      var nowTitle = sched.now ? sched.now.t : liveFallbackLabel;
+      if (slot.nowTitle !== nowTitle) {
+        slot.nowTitle = nowTitle;
+        slot.progEl.textContent = nowTitle;
+      }
+
       var pct = 0;
       if (sched.now && sched.now.e > sched.now.s) {
         pct = Math.max(2, Math.min(100, Math.round(((nowSec - sched.now.s) / (sched.now.e - sched.now.s)) * 100)));
       }
-
-      var favStar = isChannelFav(ch) ? '<span class="ch-fav" aria-label="Favorite">★</span>' : '';
-
-      var logoHtml = ch.logo
-        ? '<img class="ch-logo-img" src="' + escapeHtml(ch.logo) + '" alt="" width="48" height="36" loading="lazy" fetchpriority="low" decoding="async" onerror="this.style.display=\'none\';this.parentNode.textContent=\'' + escapeHtml(getMonogram(ch.name)) + '\';">'
-        : escapeHtml(getMonogram(ch.name));
-
-      html +=
-        '<div class="' + cls + '" role="option" data-ch-idx="' + i + '" aria-selected="' + isSelected + '">' +
-        '<span class="ch-num">' + ch.num + '</span>' +
-        '<div class="ch-logo-box">' + logoHtml + '</div>' +
-        '<div class="ch-info">' +
-        '<div class="ch-title-line">' +
-        favStar +
-        '<span class="ch-name">' + escapeHtml(ch.name) + '</span>' +
-        '</div>' +
-        '<div class="ch-now-prog">' + escapeHtml(nowTitle) + '</div>' +
-        (pct > 0 ? '<div class="ch-mini-bar"><div class="ch-mini-bar-fill" style="width:' + pct + '%"></div></div>' : '') +
-        '</div>' +
-        '</div>';
+      if (slot.pct !== pct) {
+        if ((slot.pct === 0) !== (pct === 0)) {
+          slot.barEl.style.display = pct > 0 ? '' : 'none';
+        }
+        if (pct > 0) {
+          slot.barFillEl.style.width = pct + '%';
+        }
+        slot.pct = pct;
+      }
     }
 
-    pool.innerHTML = html;
+    // Hide any unused ring-buffer slots when filtered list has fewer than CHANNEL_POOL_SIZE items
+    if (endIdx - startIdx < CHANNEL_POOL_SIZE) {
+      for (var s = 0; s < CHANNEL_POOL_SIZE; s++) {
+        var sl = channelRowPool[s];
+        if (sl.visible && (sl.idx < startIdx || sl.idx >= endIdx)) {
+          sl.el.style.display = 'none';
+          sl.visible = false;
+          sl.idx = -1;
+        }
+      }
+    }
+
     state.poolFilterGen = state.filterGen;
+    state.poolEpgGen = epgGen;
     state.poolStartIdx = startIdx;
     state.poolEndIdx = endIdx;
     state.poolFocusedIdx = state.focusedChannelIdx;
     state.poolActivePane = isPaneCh;
     state.poolPlayingKey = state.playingChannelKey;
+    state.poolRowH = ROW_HEIGHT;
   }
 
   function buildDayTabsForChannel(channel) {
@@ -899,7 +1168,7 @@
     }
 
     if (!matched.length && (dayTab.offset === 0 || NS.Catchup.getChannelCatchupDays(channel, state.settings) >= dayTab.offset)) {
-      var limitSec = dayTab.offset === 0 ? Math.min(dayTab.endSec, nowSec + 3600) : dayTab.endSec;
+      var limitSec = dayTab.offset === 0 ? Math.min(dayTab.endSec, nowSec + 12 * 3600) : dayTab.endSec;
       for (var slotSec = dayTab.startSec; slotSec < limitSec; slotSec += 3600) {
         matched.push({
           s: slotSec,
@@ -937,22 +1206,48 @@
       }
     }
 
+    if (state.lastPreviewedChannelKey !== ch.key) {
+      state.lastPreviewedChannelKey = ch.key;
+      state.selectedDayOffset = 0;
+    }
+
     buildDayTabsForChannel(ch);
     var activeTab = state.dayTabs[state.selectedDayOffset] || state.dayTabs[0];
     var progs = computeDayPrograms(ch, activeTab);
     state.currentDayPrograms = progs;
 
     var nowSec = Math.floor(Date.now() / 1000);
-    if (activeTab && activeTab.offset === 0) {
-      var liveIdx = -1;
-      for (var i = 0; i < progs.length; i++) {
-        if (nowSec >= progs[i].s && nowSec < progs[i].e) {
-          liveIdx = i;
+    var archiveMatchIdx = -1;
+    if (
+      !preferPreviousShow &&
+      state.playbackMode === 'archive' &&
+      ch.key === state.playingChannelKey &&
+      state.activeArchiveProgram
+    ) {
+      for (var aIdx = 0; aIdx < progs.length; aIdx++) {
+        if (progs[aIdx].s === state.activeArchiveProgram.s) {
+          archiveMatchIdx = aIdx;
           break;
         }
       }
+    }
+
+    if (archiveMatchIdx !== -1) {
+      state.focusedProgramIdx = archiveMatchIdx;
+    } else if (activeTab && activeTab.offset === 0) {
+      var liveIdx = NS.Parser.findProgramIndexAt(progs, nowSec);
       if (liveIdx === -1 && progs.length) {
-        liveIdx = Math.max(0, progs.length - 1);
+        var bestLiveDiff = Infinity;
+        for (var k = 0; k < progs.length; k++) {
+          if (progs[k].s <= nowSec) {
+            liveIdx = k;
+          }
+          var dSec = Math.abs(progs[k].s - nowSec);
+          if (liveIdx === -1 && dSec < bestLiveDiff) {
+            bestLiveDiff = dSec;
+            liveIdx = k;
+          }
+        }
       }
       if (preferPreviousShow && liveIdx > 0) {
         state.focusedProgramIdx = liveIdx - 1;
@@ -1011,14 +1306,95 @@
     state.dayTabsRenderedFocused = isDaysFocused;
   }
 
+  var programRowPool = [];
+  var programEmptyEl = null;
+
+  function createProgramPoolSlot(idx) {
+    var el = document.createElement('div');
+    el.className = 'prog-item';
+    el.setAttribute('role', 'option');
+    el.setAttribute('data-prog-idx', String(idx));
+    el.setAttribute('aria-selected', 'false');
+
+    var timeEl = document.createElement('div');
+    timeEl.className = 'prog-time';
+    var timeNode = document.createTextNode('');
+    timeEl.appendChild(timeNode);
+
+    var bodyEl = document.createElement('div');
+    bodyEl.className = 'prog-body';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'prog-title';
+    var titleNode = document.createTextNode('');
+    titleEl.appendChild(titleNode);
+
+    var descEl = document.createElement('div');
+    descEl.className = 'prog-desc';
+    descEl.style.display = 'none';
+    var descNode = document.createTextNode('');
+    descEl.appendChild(descNode);
+
+    bodyEl.appendChild(titleEl);
+    bodyEl.appendChild(descEl);
+
+    var pillEl = document.createElement('span');
+    pillEl.className = 'prog-pill';
+    pillEl.style.display = 'none';
+    var pillNode = document.createTextNode('');
+    pillEl.appendChild(pillNode);
+
+    el.appendChild(timeEl);
+    el.appendChild(bodyEl);
+    el.appendChild(pillEl);
+
+    return {
+      el: el,
+      timeNode: timeNode,
+      titleNode: titleNode,
+      descEl: descEl,
+      descNode: descNode,
+      pillEl: pillEl,
+      pillNode: pillNode,
+      visible: true,
+      hasDesc: false,
+      pillCls: 'prog-pill',
+      pillText: '',
+      pillVisible: false,
+      cls: 'prog-item',
+      ariaSel: 'false',
+      lastTime: '',
+      lastTitle: '',
+      lastDesc: ''
+    };
+  }
+
   function renderProgramsList(centerFocused, forceFull) {
     if (!dom.programsList) return;
     var progs = state.currentDayPrograms;
     if (!progs.length) {
       state.programsRenderedRef = progs;
       state.programsRenderedFocused = -1;
-      dom.programsList.innerHTML = '<div style="padding:18px;color:#94a3b8;">' + escapeHtml(t('noScheduleEntries')) + '</div>';
+      state.programsRenderedFull = false;
+      for (var hideIdx = 0; hideIdx < programRowPool.length; hideIdx++) {
+        if (programRowPool[hideIdx].visible) {
+          programRowPool[hideIdx].el.style.display = 'none';
+          programRowPool[hideIdx].visible = false;
+        }
+      }
+      if (!programEmptyEl) {
+        programEmptyEl = document.createElement('div');
+        programEmptyEl.style.padding = '18px';
+        programEmptyEl.style.color = '#94a3b8';
+        dom.programsList.appendChild(programEmptyEl);
+      }
+      programEmptyEl.textContent = t('noScheduleEntries');
+      programEmptyEl.style.display = 'block';
       return;
+    }
+
+    if (programEmptyEl && programEmptyEl.style.display !== 'none') {
+      programEmptyEl.style.display = 'none';
     }
 
     var ch = state.filteredChannels[state.focusedChannelIdx];
@@ -1030,8 +1406,9 @@
       state.activeArchiveProgram
         ? state.activeArchiveProgram.s
         : -1;
+    var isPanePrograms = state.activePane === 'programs';
     var effProgFocus =
-      state.activePane === 'programs' && state.programSubFocus === 'list' ? state.focusedProgramIdx : -1;
+      isPanePrograms && state.programSubFocus === 'list' ? state.focusedProgramIdx : -1;
 
     // Fast path 1: Same program list, channel, archive state, and focus index
     if (
@@ -1039,98 +1416,185 @@
       state.programsRenderedRef === progs &&
       state.programsRenderedChannelKey === chKey &&
       state.programsRenderedPlayingArchive === archiveStart &&
+      state.programsRenderedFull === true &&
       state.programsRenderedFocused === effProgFocus
     ) {
       if (centerFocused) {
-        var existingTarget = dom.programsList.querySelector('[data-prog-idx="' + state.focusedProgramIdx + '"]');
-        scrollChildIntoContainer(dom.programsList, existingTarget, true);
+        var existingSlot = programRowPool[state.focusedProgramIdx];
+        scrollChildIntoContainer(dom.programsList, existingSlot && existingSlot.el, true);
       }
       return;
     }
 
-    // Fast path 2: Same program list, only focus index changed -> update classes in-place
+    // Fast path 2: Full list already rendered in pool, only focus/selected index changed -> O(1) update of old & new rows!
     if (
       !forceFull &&
+      state.programsRenderedFull === true &&
       state.programsRenderedRef === progs &&
       state.programsRenderedChannelKey === chKey &&
       state.programsRenderedPlayingArchive === archiveStart &&
-      dom.programsList.children &&
-      dom.programsList.children.length === progs.length
+      programRowPool.length >= progs.length
     ) {
-      var nowFast = Math.floor(Date.now() / 1000);
-      var pRows = dom.programsList.children;
-      for (var k = 0; k < pRows.length; k++) {
-        var pk = progs[k];
-        var kLive = nowFast >= pk.s && nowFast < pk.e;
-        var kPast = pk.e <= nowFast;
-        var kFuture = pk.s > nowFast;
-        var kHasCatchup = kPast && NS.Catchup.isProgramCatchupAvailable(ch, pk, nowFast, state.settings);
-        var kFocused = k === effProgFocus;
-        var kArch = archiveStart !== -1 && archiveStart === pk.s;
-        var kCls = 'prog-item';
-        if (k >= 10 && Math.abs(k - state.focusedProgramIdx) > 8) kCls += ' prog-item--deferred';
-        if (kLive) kCls += ' is-live';
-        if (kFuture || (kPast && !kHasCatchup)) kCls += ' is-future';
-        if (kArch) kCls += ' is-playing-archive';
-        if (kFocused) kCls += ' is-focused';
-        pRows[k].className = kCls;
-        pRows[k].setAttribute('aria-selected', String(kFocused));
+      var changedIndices = [
+        state.programsRenderedFocused,
+        state.programsRenderedSelected,
+        effProgFocus,
+        state.focusedProgramIdx
+      ];
+      for (var cIdx = 0; cIdx < changedIndices.length; cIdx++) {
+        var rIdx = changedIndices[cIdx];
+        if (rIdx === undefined || rIdx < 0 || rIdx >= progs.length) continue;
+        var rSlot = programRowPool[rIdx];
+        if (!rSlot) continue;
+        var shouldFocus = rIdx === effProgFocus;
+        var shouldSelect = rIdx === state.focusedProgramIdx && !shouldFocus;
+        rSlot.el.classList.toggle('is-focused', shouldFocus);
+        rSlot.el.classList.toggle('is-selected', shouldSelect);
+        rSlot.cls = rSlot.el.className;
+        var nextAria = (shouldFocus || shouldSelect) ? 'true' : 'false';
+        if (rSlot.ariaSel !== nextAria) {
+          rSlot.ariaSel = nextAria;
+          rSlot.el.setAttribute('aria-selected', nextAria);
+        }
       }
       state.programsRenderedFocused = effProgFocus;
-      var fastTarget = pRows[state.focusedProgramIdx] || dom.programsList.querySelector('[data-prog-idx="' + state.focusedProgramIdx + '"]');
-      scrollChildIntoContainer(dom.programsList, fastTarget, !!centerFocused);
+      state.programsRenderedSelected = state.focusedProgramIdx;
+      if (centerFocused || effProgFocus >= 0) {
+        var fastSlot = programRowPool[state.focusedProgramIdx];
+        scrollChildIntoContainer(dom.programsList, fastSlot && fastSlot.el, !!centerFocused);
+      }
       return;
     }
 
+    // Grow recycled DOM pool on demand (appended once via DocumentFragment)
+    if (programRowPool.length < progs.length) {
+      var frag = document.createDocumentFragment();
+      for (var g = programRowPool.length; g < progs.length; g++) {
+        var newSlot = createProgramPoolSlot(g);
+        programRowPool.push(newSlot);
+        frag.appendChild(newSlot.el);
+      }
+      dom.programsList.appendChild(frag);
+    }
+
     var nowSec = Math.floor(Date.now() / 1000);
-    var html = '';
+    var lblPlaying = t('pillPlaying');
+    var lblReplay = t('pillReplay');
+    var lblLive = t('pillLive');
+    var lblUpcoming = t('pillUpcoming');
 
     for (var i = 0; i < progs.length; i++) {
       var p = progs[i];
+      var slot = programRowPool[i];
+      if (!slot.visible) {
+        slot.el.style.display = '';
+        slot.visible = true;
+      }
+
       var isLive = nowSec >= p.s && nowSec < p.e;
       var isPast = p.e <= nowSec;
       var isFuture = p.s > nowSec;
       var isFocused = i === effProgFocus;
+      var isSelected = i === state.focusedProgramIdx;
       var isPlayingThisArchive = archiveStart !== -1 && archiveStart === p.s;
       var hasCatchup = isPast && NS.Catchup.isProgramCatchupAvailable(ch, p, nowSec, state.settings);
 
       var cls = 'prog-item';
-      if (i >= 10 && Math.abs(i - state.focusedProgramIdx) > 8) cls += ' prog-item--deferred';
       if (isLive) cls += ' is-live';
       if (isFuture || (isPast && !hasCatchup)) cls += ' is-future';
       if (isPlayingThisArchive) cls += ' is-playing-archive';
+      if (isSelected && !isFocused) cls += ' is-selected';
       if (isFocused) cls += ' is-focused';
 
-      var pillHtml = '';
-      if (isPlayingThisArchive) {
-        pillHtml = '<span class="prog-pill prog-pill--replay">' + escapeHtml(t('pillPlaying')) + '</span>';
-      } else if (hasCatchup) {
-        pillHtml = '<span class="prog-pill prog-pill--replay">' + escapeHtml(t('pillReplay')) + '</span>';
-      } else if (isLive) {
-        pillHtml = '<span class="prog-pill prog-pill--live">' + escapeHtml(t('pillLive')) + '</span>';
-      } else if (isFuture) {
-        pillHtml = '<span class="prog-pill prog-pill--upcoming">' + escapeHtml(t('pillUpcoming')) + '</span>';
+      if (slot.cls !== cls) {
+        slot.cls = cls;
+        slot.el.className = cls;
       }
 
-      html +=
-        '<div class="' + cls + '" role="option" data-prog-idx="' + i + '" aria-selected="' + isFocused + '">' +
-        '<div class="prog-time">' + formatClock(p.s) + ' – ' + formatClock(p.e) + '</div>' +
-        '<div class="prog-body">' +
-        '<div class="prog-title">' + escapeHtml(p.t) + '</div>' +
-        (p.d ? '<div class="prog-desc">' + escapeHtml(p.d) + '</div>' : '') +
-        '</div>' +
-        pillHtml +
-        '</div>';
+      var ariaSel = (isFocused || isSelected) ? 'true' : 'false';
+      if (slot.ariaSel !== ariaSel) {
+        slot.ariaSel = ariaSel;
+        slot.el.setAttribute('aria-selected', ariaSel);
+      }
+
+      var timeStr = p._timeStr || (p._timeStr = formatClock(p.s) + ' – ' + formatClock(p.e));
+      if (slot.lastTime !== timeStr) {
+        slot.lastTime = timeStr;
+        slot.timeNode.nodeValue = timeStr;
+      }
+
+      var titleStr = p.t || '';
+      if (slot.lastTitle !== titleStr) {
+        slot.lastTitle = titleStr;
+        slot.titleNode.nodeValue = titleStr;
+      }
+
+      var descStr = p.d || '';
+      if (descStr) {
+        if (!slot.hasDesc) {
+          slot.hasDesc = true;
+          slot.descEl.style.display = '';
+        }
+        if (slot.lastDesc !== descStr) {
+          slot.lastDesc = descStr;
+          slot.descNode.nodeValue = descStr;
+        }
+      } else if (slot.hasDesc) {
+        slot.hasDesc = false;
+        slot.descEl.style.display = 'none';
+      }
+
+      var pCls = '';
+      var pTxt = '';
+      if (isPlayingThisArchive) {
+        pCls = 'prog-pill prog-pill--replay';
+        pTxt = lblPlaying;
+      } else if (hasCatchup) {
+        pCls = 'prog-pill prog-pill--replay';
+        pTxt = lblReplay;
+      } else if (isLive) {
+        pCls = 'prog-pill prog-pill--live';
+        pTxt = lblLive;
+      } else if (isFuture) {
+        pCls = 'prog-pill prog-pill--upcoming';
+        pTxt = lblUpcoming;
+      }
+
+      if (pTxt) {
+        if (!slot.pillVisible) {
+          slot.pillVisible = true;
+          slot.pillEl.style.display = '';
+        }
+        if (slot.pillCls !== pCls) {
+          slot.pillCls = pCls;
+          slot.pillEl.className = pCls;
+        }
+        if (slot.pillText !== pTxt) {
+          slot.pillText = pTxt;
+          slot.pillNode.nodeValue = pTxt;
+        }
+      } else if (slot.pillVisible) {
+        slot.pillVisible = false;
+        slot.pillEl.style.display = 'none';
+      }
     }
 
-    dom.programsList.innerHTML = html;
+    for (var rem = progs.length; rem < programRowPool.length; rem++) {
+      if (programRowPool[rem].visible) {
+        programRowPool[rem].el.style.display = 'none';
+        programRowPool[rem].visible = false;
+      }
+    }
+
     state.programsRenderedRef = progs;
     state.programsRenderedChannelKey = chKey;
     state.programsRenderedPlayingArchive = archiveStart;
+    state.programsRenderedFull = true;
     state.programsRenderedFocused = effProgFocus;
+    state.programsRenderedSelected = state.focusedProgramIdx;
 
-    var target = dom.programsList.querySelector('[data-prog-idx="' + state.focusedProgramIdx + '"]');
-    scrollChildIntoContainer(dom.programsList, target, !!centerFocused);
+    var targetSlot = programRowPool[state.focusedProgramIdx];
+    scrollChildIntoContainer(dom.programsList, targetSlot && targetSlot.el, !!centerFocused);
   }
 
   function updatePaneBorders() {
@@ -1153,7 +1617,7 @@
     renderGroups();
     renderChannelsVirtual();
     renderDayTabs();
-    renderProgramsList(false);
+    renderProgramsList(pane === 'programs');
 
     if (pane === 'topbar' && dom.guideTopbar) {
       var startBtn = !dom.btnLiveNow.classList.contains('is-hidden') ? dom.btnLiveNow : dom.btnFavToggle;
@@ -1175,26 +1639,66 @@
     dom.btnLiveNow.classList.toggle('is-hidden', state.playbackMode !== 'archive');
   }
 
+  var persistTuneTimer = null;
+
+  function updateRecentInMemory(channelKey) {
+    if (!channelKey) return;
+    var list = state.recents;
+    if (list.length && list[0] === channelKey) return;
+    var next = [channelKey];
+    for (var i = 0; i < list.length && next.length < 25; i++) {
+      if (list[i] !== channelKey) next.push(list[i]);
+    }
+    state.recents = next;
+    // Update Recent badge in-place (index 2) without bumping groupsRenderGen or rebuilding categories DOM!
+    if (state.displayGroups && state.displayGroups[2] && state.displayGroups[2].id === '__recent__') {
+      state.displayGroups[2].count = next.length;
+      if (dom.groupsList && dom.groupsList.children && dom.groupsList.children[2]) {
+        var badge = dom.groupsList.children[2].querySelector('.group-badge');
+        if (badge) badge.textContent = String(next.length);
+      }
+    }
+  }
+
+  function schedulePersistTuneState(channelKey) {
+    if (persistTuneTimer) clearTimeout(persistTuneTimer);
+    persistTuneTimer = setTimeout(function () {
+      persistTuneTimer = null;
+      NS.Storage.setLastChannel(channelKey);
+      NS.Storage.pushRecent(channelKey);
+    }, 350);
+  }
+
   function tuneLiveChannel(channel, closeDrawerAfter) {
     if (!channel) return;
     state.playingChannelKey = channel.key;
     state.playbackMode = 'live';
     state.activeArchiveProgram = null;
     state.pendingScrubOffsetSec = null;
+    state.streamHasStartedPlaying = false;
+    if (state.bufferingSpinnerTimer) {
+      clearTimeout(state.bufferingSpinnerTimer);
+      state.bufferingSpinnerTimer = null;
+    }
 
-    NS.Storage.setLastChannel(channel.key);
-    state.recents = NS.Storage.pushRecent(channel.key);
-    rebuildDisplayGroups();
-
-    syncReturnToLiveButton();
+    // 1. Trigger hardware video playback FIRST at t=0ms before any DOM or storage work!
     player.playLive(channel, state.settings);
+    syncReturnToLiveButton();
 
-    renderGroups();
-    renderChannelsVirtual();
-    renderProgramsList(false);
+    // 2. O(1) in-memory recent update + deferred disk persistence
+    updateRecentInMemory(channel.key);
+    schedulePersistTuneState(channel.key);
 
+    // 3. Skip guide DOM work when closing the drawer or when zapping in fullscreen!
     if (closeDrawerAfter) {
       setGuideOpen(false);
+      showOsd(4200);
+      return;
+    }
+
+    if (state.guideOpen) {
+      renderChannelsVirtual();
+      renderProgramsList(false);
     }
     showOsd(4200);
   }
@@ -1232,16 +1736,20 @@
     state.archivePosSec = initialOffsetSec || 0;
     state.archiveDurSec = Math.max(60, program.e - program.s);
     state.pendingScrubOffsetSec = null;
-
-    NS.Storage.setLastChannel(channel.key);
-    state.recents = NS.Storage.pushRecent(channel.key);
-    rebuildDisplayGroups();
-    syncReturnToLiveButton();
+    state.streamHasStartedPlaying = false;
+    if (state.bufferingSpinnerTimer) {
+      clearTimeout(state.bufferingSpinnerTimer);
+      state.bufferingSpinnerTimer = null;
+    }
 
     player.playArchive(channel, program, initialOffsetSec || 0, state.settings);
+    syncReturnToLiveButton();
+    updateRecentInMemory(channel.key);
+    schedulePersistTuneState(channel.key);
 
+    var keepOsdActive = !!state.osdInteractive;
     setGuideOpen(false);
-    showOsd(6500, true);
+    showOsd(keepOsdActive ? 6500 : 4200, keepOsdActive);
     showToast(t('pillReplay') + ': ' + program.t + ' (' + formatShortDay(program.s) + ' ' + formatClock(program.s) + ')');
   }
 
@@ -1252,11 +1760,18 @@
     showToast(t('toastReturnedLive') + ch.name);
   }
 
+  function syncVideoSurfaceVisibility() {
+    if (player && typeof player.setVideoVisible === 'function') {
+      player.setVideoVisible(!state.guideOpen && !state.modalOpen);
+    }
+  }
+
   function setGuideOpen(open) {
     state.guideOpen = open;
     if (dom.guideDrawer) {
       dom.guideDrawer.classList.toggle('is-hidden', !open);
     }
+    syncVideoSurfaceVisibility();
     if (open) {
       hideOsd();
       if (state.playingChannelKey) {
@@ -1297,6 +1812,9 @@
   }
 
   function renderOsdFocus() {
+    if (dom.osdBar) {
+      dom.osdBar.classList.toggle('is-osd-active', !!state.osdInteractive);
+    }
     var isTrackFocused = state.osdInteractive && state.osdFocusZone === 'track';
     if (dom.osdProgressTrack) {
       dom.osdProgressTrack.classList.toggle('is-focused', isTrackFocused);
@@ -1338,9 +1856,6 @@
       if (dom.osdTimeStart) dom.osdTimeStart.textContent = formatClockWithSec(p.s + pos);
       if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = formatClock(p.e);
       if (dom.osdNextInfo) dom.osdNextInfo.textContent = p.d || t('osdCatchupFallback');
-      if (dom.osdControlsHint) {
-        dom.osdControlsHint.innerHTML = state.osdInteractive ? t('osdInteractiveControlsHtml') : t('osdArchiveControlsHtml');
-      }
     } else {
       var sched = getNowAndNextProgram(ch, nowSec);
       if (dom.osdModeBadge) {
@@ -1365,17 +1880,14 @@
         if (dom.osdNextInfo) {
           dom.osdNextInfo.textContent = sched.next
             ? t('osdUpNext') + ' (' + formatClock(sched.next.s) + '): ' + sched.next.t
-            : (sched.now.d || t('osdLiveHintText'));
+            : (sched.now.d || '');
         }
       } else {
         if (dom.osdProgTitle) dom.osdProgTitle.textContent = t('osdLiveBroadcast');
         if (dom.osdTimeStart) dom.osdTimeStart.textContent = '--:--';
         if (dom.osdTimeEnd) dom.osdTimeEnd.textContent = '--:--';
         pct = 100;
-        if (dom.osdNextInfo) dom.osdNextInfo.textContent = t('osdLiveHintText');
-      }
-      if (dom.osdControlsHint) {
-        dom.osdControlsHint.innerHTML = state.osdInteractive ? t('osdInteractiveControlsHtml') : t('osdLiveControlsHtml');
+        if (dom.osdNextInfo) dom.osdNextInfo.textContent = '';
       }
     }
 
@@ -1391,17 +1903,17 @@
     if (interactive) {
       if (!state.osdInteractive) {
         state.osdFocusZone = 'buttons';
-        state.osdBtnIdx = state.playbackMode === 'archive' ? 3 : 0;
+        state.osdBtnIdx = 3; // Default focus to Play/Pause button
       }
       state.osdInteractive = true;
-    } else if (!state.osdVisible) {
+    } else if (interactive === false || !state.osdVisible) {
       state.osdInteractive = false;
     }
     state.osdVisible = true;
     updateOsdContent();
     if (dom.osdBar) dom.osdBar.classList.remove('is-hidden');
     if (state.osdTimer) clearTimeout(state.osdTimer);
-    var waitMs = timeoutMs || (state.osdInteractive ? 8000 : 4200);
+    var waitMs = timeoutMs || (state.osdInteractive ? 8000 : 5000);
     state.osdTimer = setTimeout(function () {
       if (state.pendingScrubOffsetSec === null) hideOsd();
     }, waitMs);
@@ -1415,17 +1927,23 @@
       clearTimeout(state.osdTimer);
       state.osdTimer = null;
     }
-    if (dom.osdBar) dom.osdBar.classList.add('is-hidden');
+    if (dom.osdBar) {
+      dom.osdBar.classList.remove('is-osd-active');
+      dom.osdBar.classList.add('is-hidden');
+    }
   }
 
   function zapChannel(delta) {
     var list = state.filteredChannels.length ? state.filteredChannels : state.allChannels;
     if (!list.length) return;
-    var curIdx = 0;
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].key === state.playingChannelKey) {
-        curIdx = i;
-        break;
+    var curIdx = state.focusedChannelIdx || 0;
+    if (!list[curIdx] || list[curIdx].key !== state.playingChannelKey) {
+      curIdx = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].key === state.playingChannelKey) {
+          curIdx = i;
+          break;
+        }
       }
     }
     var nextIdx = (curIdx + delta + list.length) % list.length;
@@ -1597,9 +2115,13 @@
     if (dom.btnLiveNow) dom.btnLiveNow.textContent = t('returnToLive');
     updateMuteButtonText();
     if (dom.btnFavToggle) dom.btnFavToggle.textContent = t('favoriteBtn');
+    if (dom.btnRefreshEpg) dom.btnRefreshEpg.textContent = t('refreshEpgBtn');
     if (dom.btnUsbImport) dom.btnUsbImport.textContent = t('usbBtn');
     if (dom.btnLangToggle) dom.btnLangToggle.textContent = langOpt.shortLabel;
-    if (dom.btnOpenSettings) dom.btnOpenSettings.textContent = t('settingsBtn');
+    if (dom.btnOpenSettings) {
+      dom.btnOpenSettings.setAttribute('aria-label', t('settingsBtn'));
+      dom.btnOpenSettings.setAttribute('title', t('settingsBtn'));
+    }
     if (dom.groupsHeaderTitle) dom.groupsHeaderTitle.textContent = t('categoriesTitle');
     if (dom.guideFooter) dom.guideFooter.innerHTML = t('footerHtml');
 
@@ -1610,6 +2132,7 @@
     if (dom.lblCycleMode) dom.lblCycleMode.textContent = t('lblCycleMode');
     if (dom.lblCycleOffset) dom.lblCycleOffset.textContent = t('lblCycleOffset');
     if (dom.lblCycleLang) dom.lblCycleLang.textContent = t('lblCycleLang');
+    if (dom.lblCycleSearch) dom.lblCycleSearch.textContent = t('lblCycleSearch');
     if (dom.usbHelpText) dom.usbHelpText.innerHTML = t('usbHelpHtml');
     if (dom.btnModalUsb) dom.btnModalUsb.textContent = t('btnScanUsb');
     if (dom.btnModalLocalfile) dom.btnModalLocalfile.textContent = t('btnLoadLocal');
@@ -1617,11 +2140,24 @@
     if (dom.btnModalCancel) dom.btnModalCancel.textContent = t('btnCloseEsc');
     if (dom.btnModalSave) dom.btnModalSave.textContent = t('btnSaveReload');
 
-    if (dom.osdLblRestart) dom.osdLblRestart.textContent = t('osdBtnRestart');
-    if (dom.osdLblPlaypause) dom.osdLblPlaypause.textContent = t('osdBtnPause');
-    if (dom.osdLblGolive) dom.osdLblGolive.textContent = t('osdBtnLive');
-    if (dom.osdLblGuide) dom.osdLblGuide.textContent = t('osdBtnGuide');
+    if (dom.osdBtnRestart) {
+      dom.osdBtnRestart.setAttribute('aria-label', t('osdBtnRestart'));
+      dom.osdBtnRestart.setAttribute('title', t('osdBtnRestart'));
+    }
+    if (dom.osdBtnPlaypause) {
+      dom.osdBtnPlaypause.setAttribute('aria-label', t('osdBtnPause'));
+      dom.osdBtnPlaypause.setAttribute('title', t('osdBtnPause'));
+    }
+    if (dom.osdBtnGolive) {
+      dom.osdBtnGolive.setAttribute('aria-label', t('osdBtnLive'));
+      dom.osdBtnGolive.setAttribute('title', t('osdBtnLive'));
+    }
+    if (dom.osdBtnGuide) {
+      dom.osdBtnGuide.setAttribute('aria-label', t('osdBtnGuide'));
+      dom.osdBtnGuide.setAttribute('title', t('osdBtnGuide'));
+    }
 
+    applySearchVisibility();
     renderModalCycleButtons();
     if (state.allChannels.length) {
       rebuildDisplayGroups();
@@ -1648,6 +2184,18 @@
     }
   }
 
+  function applySearchVisibility() {
+    var enabled = !!(state.settings && state.settings.showSearch);
+    if (dom.searchInput) {
+      dom.searchInput.classList.toggle('is-hidden', !enabled);
+      if (!enabled && state.searchQuery) {
+        dom.searchInput.value = '';
+        state.searchQuery = '';
+        applyChannelFilter('');
+      }
+    }
+  }
+
   // Modal Cycle Buttons Rendering
   function renderModalCycleButtons() {
     var modeObj = CATCHUP_MODES[0];
@@ -1660,18 +2208,23 @@
     if (dom.btnCycleOffset) dom.btnCycleOffset.textContent = '▸ ' + offLabel;
     var mLangOpt = getLangOption(state.modalLang || getLang());
     if (dom.btnCycleLang) dom.btnCycleLang.textContent = '▸ ' + mLangOpt.shortLabel + ' · ' + mLangOpt.label;
+    if (dom.btnCycleSearch) {
+      dom.btnCycleSearch.textContent = '▸ ' + (state.modalShowSearch ? t('searchOn') : t('searchOff'));
+    }
   }
 
   function openSettingsModal() {
     state.modalOpen = true;
     hideOsd();
     lockAllTvInputs();
+    syncVideoSurfaceVisibility();
 
     dom.inpM3u.value = state.settings.m3uUrl || '';
     dom.inpEpg.value = state.settings.epgUrl || '';
     state.modalMode = state.settings.catchupMode || 'auto';
     state.modalOffsetMin = Number(state.settings.epgOffsetMin) || 0;
     state.modalLang = getLang();
+    state.modalShowSearch = !!(state.settings && state.settings.showSearch);
     renderModalCycleButtons();
 
     if (dom.remotePushHint) {
@@ -1690,6 +2243,7 @@
     lockAllTvInputs();
     state.modalOpen = false;
     dom.settingsModal.classList.add('is-hidden');
+    syncVideoSurfaceVisibility();
     if (state.guideOpen) {
       setActivePane(state.lastContentPane || 'channels');
     }
@@ -1699,6 +2253,7 @@
     state.allChannels = bundle.channels || [];
     state.rawGroups = bundle.groups || [];
     state.epgByBucket = bundle.epgByBucket || Object.create(null);
+    state.epgGen = (state.epgGen || 0) + 1;
     state.isDemoData = !!isDemo;
     indexChannelsState();
 
@@ -1715,16 +2270,80 @@
     }
   }
 
-  function persistActiveSnapshot(sourceLabel, epgUrl) {
-    NS.Storage.saveSnapshot('active_playlist', {
-      m3uUrl: state.settings.m3uUrl || '',
-      epgUrl: epgUrl || state.settings.epgUrl || '',
-      sourceLabel: sourceLabel || '',
-      channels: state.allChannels,
-      groups: state.rawGroups,
-      epgByBucket: state.epgByBucket,
-      savedAt: Date.now()
-    });
+  function scheduleDeferredEpgSave(effEpgUrl) {
+    if (state.deferredEpgSaveTimer) {
+      clearTimeout(state.deferredEpgSaveTimer);
+      state.deferredEpgSaveTimer = null;
+    }
+    var checkAndSave = function () {
+      state.deferredEpgSaveTimer = null;
+      if (state.isDemoData || !state.epgByBucket || !Object.keys(state.epgByBucket).length) return;
+      var idleElapsed = Date.now() - (state.lastKeyActivityMs || 0);
+      if (idleElapsed < 3000) {
+        state.deferredEpgSaveTimer = setTimeout(checkAndSave, Math.max(600, 3000 - idleElapsed));
+        return;
+      }
+      var writeFn = function () {
+        NS.Storage.saveSnapshot('active_epg', {
+          epgUrl: effEpgUrl,
+          epgByBucket: state.epgByBucket,
+          savedAt: Date.now()
+        });
+      };
+      if (typeof global.requestIdleCallback === 'function') {
+        global.requestIdleCallback(writeFn, { timeout: 2500 });
+      } else {
+        writeFn();
+      }
+    };
+    state.deferredEpgSaveTimer = setTimeout(checkAndSave, 3000);
+  }
+
+  function persistActiveSnapshot(sourceLabel, epgUrl, epgOnly) {
+    if (state.isDemoData) return;
+    var effEpgUrl = (epgUrl || state.settings.epgUrl || state.lastHeaderEpgUrl || '').trim();
+    if (effEpgUrl) state.lastHeaderEpgUrl = effEpgUrl;
+    if (!epgOnly) {
+      // Save lightweight channels & groups separately from heavy EPG data so startup cache reads are instant
+      NS.Storage.saveSnapshot('active_playlist', {
+        m3uUrl: state.settings.m3uUrl || '',
+        epgUrl: effEpgUrl,
+        sourceLabel: sourceLabel || '',
+        channels: state.allChannels,
+        groups: state.rawGroups,
+        savedAt: Date.now()
+      });
+    }
+    if (state.epgByBucket && Object.keys(state.epgByBucket).length > 0) {
+      scheduleDeferredEpgSave(effEpgUrl);
+    }
+  }
+
+  function hasMatchingEpg(epgByBucket, channels) {
+    if (!epgByBucket || !channels || !channels.length) return false;
+    for (var i = 0; i < channels.length; i++) {
+      var ch = channels[i];
+      if (!ch) continue;
+      var bucket = NS.Parser.getChannelBucketKey(ch);
+      if (epgByBucket[bucket] && epgByBucket[bucket].length) return true;
+      var fallbackNorm = 'norm:' + ch.normName;
+      if (epgByBucket[fallbackNorm] && epgByBucket[fallbackNorm].length) return true;
+    }
+    return false;
+  }
+
+  function resolveEffectiveEpgUrl(explicitUrl, headerUrls, m3uUrl) {
+    var cand =
+      (explicitUrl || '').trim() ||
+      (state.settings && state.settings.epgUrl ? state.settings.epgUrl.trim() : '') ||
+      (headerUrls && headerUrls[0] ? String(headerUrls[0]).trim() : '') ||
+      (state.lastHeaderEpgUrl || '').trim();
+    if (cand) return cand;
+    var m3u = (m3uUrl || (state.settings && state.settings.m3uUrl) || '').trim();
+    if (m3u && /\/get\.php\?/i.test(m3u) && /username=/i.test(m3u) && /password=/i.test(m3u)) {
+      return m3u.replace(/\/get\.php\?/i, '/xmltv.php?').replace(/&?(type|output)=[^&]*/gi, '');
+    }
+    return '';
   }
 
   function syncSettingsToCompanionServer(cfg) {
@@ -1737,15 +2356,18 @@
     } catch (_) {}
   }
 
-  function loadAndHydrateEpg(epgUrl, channels) {
-    if (!epgUrl) {
-      if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Replay Ready';
+  function loadAndHydrateEpg(epgUrl, channels, showFeedbackToast) {
+    var targetEpgUrl = (epgUrl || '').trim();
+    if (!targetEpgUrl) {
       persistActiveSnapshot('', '');
+      if (showFeedbackToast) {
+        showToast(t('toastNoEpgSource'), 3200);
+      }
       return Promise.resolve();
     }
-    if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Syncing EPG...';
+    state.lastHeaderEpgUrl = targetEpgUrl;
 
-    return NS.Parser.fetchTextSmart(epgUrl, state.settings.useCorsProxy)
+    return NS.Parser.fetchTextSmart(targetEpgUrl, state.settings.useCorsProxy, channels)
       .then(function (xmlText) {
         return NS.Parser.parseXMLTVAsync(
           xmlText,
@@ -1756,28 +2378,67 @@
       })
       .then(function (epgRes) {
         state.epgByBucket = epgRes.epgByBucket;
-        if (dom.epgSyncPill) {
-          dom.epgSyncPill.textContent = 'EPG: ' + epgRes.matchedChannels + ' ch (' + epgRes.totalPrograms + ' shows)';
-        }
+        state.epgGen = (state.epgGen || 0) + 1;
         renderChannelsVirtual(true);
         refreshProgramsForHighlightedChannel(false);
-        persistActiveSnapshot('', epgUrl);
+        if (state.osdVisible) {
+          updateOsdContent();
+        }
+        persistActiveSnapshot('', targetEpgUrl, true);
+        if (showFeedbackToast) {
+          showToast(t('toastEpgUpdated').replace('{c}', String(epgRes.matchedChannels)), 2600);
+        }
       })
       .catch(function (err) {
-        if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'EPG unavailable';
-        persistActiveSnapshot('', epgUrl);
-        showToast('EPG note: ' + (err && err.message ? err.message : 'unavailable') + ' — hourly slots active');
+        persistActiveSnapshot('', targetEpgUrl, true);
+        showToast('EPG note: ' + (err && err.message ? err.message : 'unavailable') + ' — hourly slots active', 3800);
+      });
+  }
+
+  function refreshEpgNow(silentStart) {
+    if (!state.allChannels || !state.allChannels.length) {
+      return loadConfiguredUrls(true);
+    }
+    if (!silentStart) {
+      showToast(t('toastRefreshingEpg'), 3500);
+    }
+    var knownEpgUrl = resolveEffectiveEpgUrl('', null, state.settings && state.settings.m3uUrl);
+    if (knownEpgUrl) {
+      return loadAndHydrateEpg(knownEpgUrl, state.allChannels, !silentStart);
+    }
+    var m3uUrl = (state.settings && state.settings.m3uUrl ? state.settings.m3uUrl : '').trim();
+    if (!m3uUrl) {
+      if (!silentStart) showToast(t('toastNoEpgSource'), 3200);
+      return Promise.resolve();
+    }
+    return NS.Parser.fetchTextSmart(m3uUrl, state.settings.useCorsProxy)
+      .then(function (m3uText) {
+        return NS.Parser.parseM3UAsync(m3uText, state.settings.catchupDays);
+      })
+      .then(function (parsed) {
+        var discoveredUrl = resolveEffectiveEpgUrl('', parsed.headerEpgUrls, m3uUrl);
+        if (discoveredUrl && !state.settings.epgUrl) {
+          state.settings = NS.Storage.saveSettings({ epgUrl: discoveredUrl });
+        }
+        persistActiveSnapshot('', discoveredUrl);
+        return loadAndHydrateEpg(discoveredUrl, state.allChannels, !silentStart);
+      })
+      .catch(function (err) {
+        if (!silentStart) {
+          showToast('EPG refresh error: ' + (err && err.message ? err.message : String(err)), 3800);
+        }
       });
   }
 
   function loadFromRawM3uText(m3uText, sourceLabel, explicitEpgText, explicitEpgUrl) {
-    if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Parsing M3U...';
     return NS.Parser.parseM3UAsync(m3uText, state.settings.catchupDays).then(function (parsed) {
       if (!parsed.channels.length) {
         showToast('No playable channels found in M3U');
         return;
       }
       state.playingChannelKey = '';
+      var targetEpgUrl = resolveEffectiveEpgUrl(explicitEpgUrl, parsed.headerEpgUrls, state.settings.m3uUrl);
+      if (targetEpgUrl) state.lastHeaderEpgUrl = targetEpgUrl;
       applyBundleToState(
         {
           channels: parsed.channels,
@@ -1787,10 +2448,9 @@
         sourceLabel + ' (' + parsed.channels.length + ' ch)',
         false
       );
-      persistActiveSnapshot(sourceLabel, explicitEpgUrl || state.settings.epgUrl || '');
+      persistActiveSnapshot(sourceLabel, targetEpgUrl);
 
       if (explicitEpgText) {
-        if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Parsing USB EPG...';
         return NS.Parser.parseXMLTVAsync(
           explicitEpgText,
           parsed.channels,
@@ -1798,19 +2458,45 @@
           state.settings.epgOffsetMin
         ).then(function (epgRes) {
           state.epgByBucket = epgRes.epgByBucket;
-          if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'EPG: ' + epgRes.matchedChannels + ' ch';
+          state.epgGen = (state.epgGen || 0) + 1;
           renderChannelsVirtual(true);
           refreshProgramsForHighlightedChannel(false);
-          persistActiveSnapshot(sourceLabel, '');
+          persistActiveSnapshot(sourceLabel, targetEpgUrl);
         });
       }
 
-      var targetEpgUrl = explicitEpgUrl || state.settings.epgUrl || (parsed.headerEpgUrls && parsed.headerEpgUrls[0]) || '';
       if (targetEpgUrl && !state.settings.epgUrl) {
         state.settings = NS.Storage.saveSettings({ epgUrl: targetEpgUrl });
       }
-      return loadAndHydrateEpg(targetEpgUrl, parsed.channels);
+      return loadAndHydrateEpg(targetEpgUrl, parsed.channels, false);
     });
+  }
+
+  function lazyHydrateCachedEpg(fallbackEpgUrl, channels, forceEpgRefresh) {
+    setTimeout(function () {
+      NS.Storage.loadSnapshot('active_epg').then(function (epgSnap) {
+        var nowMs = Date.now();
+        var hasMatch = !!(epgSnap && epgSnap.epgByBucket && hasMatchingEpg(epgSnap.epgByBucket, channels));
+        var epgFresh = hasMatch && (nowMs - (epgSnap.savedAt || 0) < 4 * 3600 * 1000);
+        if (hasMatch) {
+          state.epgByBucket = epgSnap.epgByBucket;
+          state.epgGen = (state.epgGen || 0) + 1;
+          renderChannelsVirtual(true);
+          refreshProgramsForHighlightedChannel(false);
+        }
+        var effUrl = resolveEffectiveEpgUrl(fallbackEpgUrl || (epgSnap && epgSnap.epgUrl) || '', null, state.settings && state.settings.m3uUrl);
+        if (forceEpgRefresh || !epgFresh) {
+          var delayMs = hasMatch ? 2200 : 450;
+          setTimeout(function () {
+            if (effUrl) {
+              loadAndHydrateEpg(effUrl, channels, false);
+            } else if (state.settings && state.settings.m3uUrl) {
+              refreshEpgNow(true);
+            }
+          }, delayMs);
+        }
+      });
+    }, 180);
   }
 
   function loadConfiguredUrls(forceNetwork) {
@@ -1819,29 +2505,39 @@
       if (!forceNetwork) {
         return NS.Storage.loadSnapshot('active_playlist').then(function (snap) {
           if (snap && snap.channels && snap.channels.length) {
+            if (snap.epgUrl) state.lastHeaderEpgUrl = snap.epgUrl;
             applyBundleToState(snap, snap.sourceLabel || ('Saved (' + snap.channels.length + ' ch)'), false);
-            if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Restored Saved Playlist';
+            if (!snap.epgByBucket || !hasMatchingEpg(snap.epgByBucket, snap.channels)) {
+              lazyHydrateCachedEpg(snap.epgUrl || state.settings.epgUrl || '', snap.channels, false);
+            }
             return;
           }
           var demo = NS.DemoData.buildDemoBundle();
           applyBundleToState(demo, 'Demo Mode (5 ch)', true);
-          if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Demo EPG Active';
         });
       }
       var demoNow = NS.DemoData.buildDemoBundle();
       applyBundleToState(demoNow, 'Demo Mode (5 ch)', true);
-      if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Demo EPG Active';
       return Promise.resolve();
     }
 
     var cacheChain = forceNetwork ? Promise.resolve(null) : NS.Storage.loadSnapshot('active_playlist');
 
     return cacheChain.then(function (cached) {
-      if (cached && cached.m3uUrl === m3uUrl && cached.channels && cached.channels.length) {
-        applyBundleToState(cached, 'Cached (' + cached.channels.length + ' ch)', false);
-        if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Instant Cache · Refreshing...';
-      } else {
-        if (dom.epgSyncPill) dom.epgSyncPill.textContent = 'Downloading M3U...';
+      var hasCached = !!(cached && cached.m3uUrl === m3uUrl && cached.channels && cached.channels.length);
+      var cacheAgeMs = hasCached ? (Date.now() - (cached.savedAt || 0)) : Infinity;
+      var playlistCacheFresh = hasCached && !forceNetwork && cacheAgeMs < 12 * 3600 * 1000;
+
+      if (hasCached) {
+        if (cached.epgUrl) state.lastHeaderEpgUrl = cached.epgUrl;
+        applyBundleToState(cached, cached.channels.length + ' Channels', false);
+        if (playlistCacheFresh) {
+          var cachedEpgUrl = resolveEffectiveEpgUrl(state.settings.epgUrl || cached.epgUrl || '', null, m3uUrl);
+          if (!cached.epgByBucket || !hasMatchingEpg(cached.epgByBucket, cached.channels)) {
+            lazyHydrateCachedEpg(cachedEpgUrl, cached.channels, false);
+          }
+          return Promise.resolve();
+        }
       }
 
       return NS.Parser.fetchTextSmart(m3uUrl, state.settings.useCorsProxy)
@@ -1852,7 +2548,6 @@
           if (!parsed.channels.length) {
             throw new Error('Playlist returned 0 channels');
           }
-          var hadCached = !!(cached && cached.channels && cached.channels.length);
           state.allChannels = parsed.channels;
           state.rawGroups = parsed.groups;
           state.isDemoData = false;
@@ -1863,12 +2558,16 @@
           applyChannelFilter(state.playingChannelKey || NS.Storage.getLastChannel());
           renderGroups();
 
-          if (!hadCached && !state.playingChannelKey && state.filteredChannels[0]) {
+          if (!hasCached && !state.playingChannelKey && state.filteredChannels[0]) {
             tuneLiveChannel(state.filteredChannels[0], false);
           }
 
-          var resolvedEpg = (state.settings.epgUrl || '').trim() || (parsed.headerEpgUrls && parsed.headerEpgUrls[0]) || '';
-          return loadAndHydrateEpg(resolvedEpg, parsed.channels);
+          var resolvedEpg = resolveEffectiveEpgUrl(state.settings.epgUrl, parsed.headerEpgUrls, m3uUrl);
+          if (resolvedEpg && !state.settings.epgUrl) {
+            state.settings = NS.Storage.saveSettings({ epgUrl: resolvedEpg });
+          }
+          persistActiveSnapshot('', resolvedEpg);
+          return loadAndHydrateEpg(resolvedEpg, parsed.channels, !!forceNetwork);
         })
         .catch(function (err) {
           showToast('M3U fetch error: ' + (err && err.message ? err.message : String(err)), 4200);
@@ -1918,7 +2617,7 @@
     if (state.previewSyncTimer) clearTimeout(state.previewSyncTimer);
     state.previewSyncTimer = setTimeout(function () {
       refreshProgramsForHighlightedChannel(false);
-    }, 55);
+    }, 140);
   }
 
   function isActivelyEditingInput(el) {
@@ -1928,6 +2627,7 @@
   }
 
   function handleKeyDown(e) {
+    state.lastKeyActivityMs = Date.now();
     var code = e.keyCode || e.which || 0;
     var key = e.key || '';
     var target = e.target;
@@ -2127,25 +2827,34 @@
         }
       }
 
+      // When OSD info bar is visible (passive/not active yet), pressing Down activates it on Play/Pause!
+      if (state.osdVisible && !state.osdInteractive && isDown) {
+        e.preventDefault();
+        showOsd(8000, true);
+        return;
+      }
+
       if (state.playbackMode === 'archive') {
-        if (isLeft) {
+        if (isLeft || isGreenCatchup) {
           e.preventDefault();
-          state.osdFocusZone = 'track';
-          scrubArchiveBy(-1);
+          setGuideOpen(true);
+          refreshProgramsForHighlightedChannel(false);
+          state.programSubFocus = 'list';
+          setActivePane('programs');
           return;
         }
-        if (isRight) {
+        if (isRight || isInfo) {
           e.preventDefault();
-          state.osdFocusZone = 'track';
-          scrubArchiveBy(1);
+          showOsd(6000, false);
           return;
         }
-        if (isEnter || isInfo) {
+        if (isEnter) {
           e.preventDefault();
-          showOsd(8000, true);
+          setGuideOpen(true);
+          setActivePane('channels');
           return;
         }
-        if (isUp || isDown || isChUp || isChDown || isGreenCatchup) {
+        if (isUp || isDown || isChUp || isChDown) {
           e.preventDefault();
           setGuideOpen(true);
           setActivePane('programs');
@@ -2163,7 +2872,7 @@
       }
 
       // Live TV Fullscreen Steering:
-      // OK = Open Guide (1 press!) | Up/Down = Zap Channel | Left = 3-Day Replay | Right = Interactive OSD Player Bar | Back = Hide OSD / Exit
+      // OK = Open Guide (1 press!) | Up/Down = Zap Channel (or Down activates OSD when visible) | Left = 3-Day Replay | Right = Show OSD Info Bar
       if (isUp || isChUp) {
         e.preventDefault();
         zapChannel(-1);
@@ -2185,7 +2894,7 @@
       }
       if (isRight || isInfo) {
         e.preventDefault();
-        showOsd(8000, true);
+        showOsd(6000, false);
         return;
       }
       if (isEnter) {
@@ -2202,6 +2911,11 @@
         }
         var nowMs = Date.now();
         if (nowMs - state.backExitArmedAt < 2500) {
+          if (global.AndroidTvBridge && typeof global.AndroidTvBridge.exitApp === 'function') {
+            try {
+              global.AndroidTvBridge.exitApp();
+            } catch (_) {}
+          }
           if (global.tizen && global.tizen.application) {
             try {
               global.tizen.application.getCurrentApplication().exit();
@@ -2313,8 +3027,17 @@
         setActivePane('groups');
       } else if (isRight || isGreenCatchup) {
         e.preventDefault();
+        if (state.previewSyncTimer) {
+          clearTimeout(state.previewSyncTimer);
+          state.previewSyncTimer = null;
+          refreshProgramsForHighlightedChannel(false);
+        } else {
+          var curCh = state.filteredChannels[state.focusedChannelIdx];
+          if (curCh && state.programsRenderedChannelKey !== curCh.key) {
+            refreshProgramsForHighlightedChannel(false);
+          }
+        }
         state.programSubFocus = 'list';
-        refreshProgramsForHighlightedChannel(false);
         setActivePane('programs');
       } else if (isEnter) {
         e.preventDefault();
@@ -2458,6 +3181,7 @@
     dom.btnLiveNow = $('btn-live-now');
     dom.btnMuteToggle = $('btn-mute-toggle');
     dom.btnFavToggle = $('btn-fav-toggle');
+    dom.btnRefreshEpg = $('btn-refresh-epg');
     dom.btnUsbImport = $('btn-usb-import');
     dom.btnLangToggle = $('btn-lang-toggle');
     dom.btnOpenSettings = $('btn-open-settings');
@@ -2515,12 +3239,14 @@
     dom.lblCycleMode = $('lbl-cycle-mode');
     dom.lblCycleOffset = $('lbl-cycle-offset');
     dom.lblCycleLang = $('lbl-cycle-lang');
+    dom.lblCycleSearch = $('lbl-cycle-search');
     dom.usbHelpText = $('usb-help-text');
     dom.inpM3u = $('inp-m3u');
     dom.inpEpg = $('inp-epg');
     dom.btnCycleMode = $('btn-cycle-mode');
     dom.btnCycleOffset = $('btn-cycle-offset');
     dom.btnCycleLang = $('btn-cycle-lang');
+    dom.btnCycleSearch = $('btn-cycle-search');
     dom.btnModalUsb = $('btn-modal-usb');
     dom.btnModalLocalfile = $('btn-modal-localfile');
     dom.btnModalDemo = $('btn-modal-demo');
@@ -2660,9 +3386,16 @@
       showToast(nowMuted ? t('muted') : t('soundOn'), 1500);
     });
     dom.btnFavToggle.addEventListener('click', toggleFavoriteOnHighlighted);
-    dom.btnUsbImport.addEventListener('click', function () {
-      handleUsbImport(false);
-    });
+    if (dom.btnRefreshEpg) {
+      dom.btnRefreshEpg.addEventListener('click', function () {
+        refreshEpgNow(false);
+      });
+    }
+    if (dom.btnUsbImport) {
+      dom.btnUsbImport.addEventListener('click', function () {
+        handleUsbImport(false);
+      });
+    }
     if (dom.btnLangToggle) {
       dom.btnLangToggle.addEventListener('click', cycleLanguage);
     }
@@ -2687,6 +3420,15 @@
     if (dom.btnCycleLang) {
       dom.btnCycleLang.addEventListener('click', function () {
         cycleLanguage();
+      });
+    }
+
+    if (dom.btnCycleSearch) {
+      dom.btnCycleSearch.addEventListener('click', function () {
+        state.modalShowSearch = !state.modalShowSearch;
+        state.settings = NS.Storage.saveSettings({ showSearch: state.modalShowSearch });
+        applySearchVisibility();
+        renderModalCycleButtons();
       });
     }
 
@@ -2734,6 +3476,7 @@
         catchupMode: state.modalMode,
         catchupDays: 3,
         epgOffsetMin: state.modalOffsetMin,
+        showSearch: !!state.modalShowSearch,
         lang: state.modalLang || getLang()
       };
       state.settings = NS.Storage.saveSettings(nextCfg);
@@ -2761,9 +3504,44 @@
     });
 
     document.addEventListener('keydown', handleKeyDown, false);
+
+    var reusableTvKeyEvent = {
+      keyCode: 0,
+      which: 0,
+      key: '',
+      target: null,
+      preventDefault: function () {},
+      stopPropagation: function () {}
+    };
+
+    global.__handleTvKey = function (keyCode, keyName) {
+      var activeEl = document.activeElement || document.body || document;
+      if (state.modalOpen || (state.guideOpen && state.activePane === 'topbar') || isActivelyEditingInput(activeEl)) {
+        return false;
+      }
+      reusableTvKeyEvent.keyCode = keyCode || 0;
+      reusableTvKeyEvent.which = keyCode || 0;
+      reusableTvKeyEvent.key = keyName || '';
+      reusableTvKeyEvent.target = activeEl;
+      handleKeyDown(reusableTvKeyEvent);
+      return true;
+    };
   }
 
   function init() {
+    syncRowHeightForViewport();
+    global.addEventListener('resize', function () {
+      if (syncRowHeightForViewport() && state.filteredChannels.length) {
+        if (dom.channelsSpacer) {
+          dom.channelsSpacer.style.height = state.filteredChannels.length * ROW_HEIGHT + 'px';
+        }
+        scrollChannelIntoView(state.focusedChannelIdx, true);
+        renderChannelsVirtual(true);
+      }
+    }, false);
+    if (global.AndroidTvBridge) {
+      document.documentElement.classList.add('is-android-tv');
+    }
     registerTizenKeys();
     bindDomAndEvents();
 
@@ -2778,11 +3556,27 @@
       onState: function (st, pct) {
         if (!dom.streamStatus) return;
         if (st === 'buffering') {
-          dom.streamStatusText.textContent = pct
+          var statusText = pct
             ? t('bufferingPct').replace('{p}', String(pct))
             : t('connectingStream');
-          dom.streamStatus.classList.remove('is-hidden');
+          dom.streamStatusText.textContent = statusText;
+          // Show spinner immediately when switching channels, but debounce mid-stream micro-rebuffers by 650ms
+          if (!state.streamHasStartedPlaying) {
+            dom.streamStatus.classList.remove('is-hidden');
+          } else if (!state.bufferingSpinnerTimer) {
+            state.bufferingSpinnerTimer = setTimeout(function () {
+              state.bufferingSpinnerTimer = null;
+              dom.streamStatus.classList.remove('is-hidden');
+            }, 650);
+          }
         } else {
+          if (st === 'playing') {
+            state.streamHasStartedPlaying = true;
+          }
+          if (state.bufferingSpinnerTimer) {
+            clearTimeout(state.bufferingSpinnerTimer);
+            state.bufferingSpinnerTimer = null;
+          }
           dom.streamStatus.classList.add('is-hidden');
         }
       },
@@ -2812,6 +3606,7 @@
         updateMuteButtonText();
       }
     });
+    syncVideoSurfaceVisibility();
 
     updateWallClock();
     setInterval(function () {

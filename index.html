@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VT_IPTV</title>
   <!-- Critical inline boot styles (Tizen 3.0 / Chromium M47+ compatible: explicit top/right/bottom/left, no CSS vars required) -->
   <style>
@@ -31,6 +31,11 @@
       height: 100%;
       background: #000;
       z-index: 1;
+    }
+    html.is-android-tv,
+    html.is-android-tv body,
+    html.is-android-tv #video-stage {
+      background: transparent !important;
     }
     #av-player {
       position: absolute;
@@ -93,21 +98,20 @@
   <section id="guide-drawer" class="guide-drawer" aria-label="Channel Guide and 3-Day Catchup">
     <header id="guide-topbar" class="guide-topbar" role="toolbar" aria-label="Quick actions">
       <div class="brand">
-        <span class="brand-logo" aria-hidden="true">VT</span>
-        <span class="brand-title">VT_<span class="brand-accent">IPTV</span></span>
-        <span id="playlist-badge" class="playlist-badge">Demo Mode</span>
+        <img src="icon.png" class="brand-logo" width="34" height="34" alt="">
+        <span id="playlist-badge" class="playlist-badge is-hidden"></span>
       </div>
 
       <div class="topbar-actions">
         <input
           id="search-input"
-          class="top-control search-input"
+          class="top-control search-input is-hidden"
           type="text"
           data-tv-input="1"
           readonly
           placeholder="Search (OK to type)..."
           autocomplete="off"
-          tabindex="0"
+          tabindex="-1"
           aria-label="Search channels"
         >
         <button id="btn-live-now" class="top-control btn-pill btn-live is-hidden" type="button" tabindex="-1">
@@ -117,7 +121,7 @@
           id="btn-mute-toggle"
           class="top-control btn-pill btn-icon"
           type="button"
-          tabindex="-1"
+          tabindex="0"
           aria-label="Sound On"
           aria-pressed="false"
         >
@@ -135,19 +139,26 @@
         <button id="btn-fav-toggle" class="top-control btn-pill" type="button" tabindex="-1" title="Toggle Favorite">
           ★ Favorite
         </button>
-        <button id="btn-usb-import" class="top-control btn-pill" type="button" tabindex="-1">
-          USB Pendrive
+        <button id="btn-refresh-epg" class="top-control btn-pill" type="button" tabindex="-1" title="Refresh EPG">
+          ↻ EPG
         </button>
-        <button id="btn-lang-toggle" class="top-control btn-pill" type="button" tabindex="-1" title="Language / Sprache / Język">
-          🌐 EN
-        </button>
-        <button id="btn-open-settings" class="top-control btn-pill btn-accent" type="button" tabindex="-1">
-          Playlist &amp; EPG
+        <button
+          id="btn-open-settings"
+          class="top-control btn-pill btn-icon btn-accent"
+          type="button"
+          tabindex="-1"
+          aria-label="Playlist &amp; EPG Settings"
+          title="Playlist &amp; EPG / USB Settings"
+        >
+          <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
         </button>
       </div>
 
       <div class="topbar-meta">
-        <span id="epg-sync-pill" class="epg-sync-pill">EPG Ready</span>
+        <span id="epg-sync-pill" class="epg-sync-pill is-hidden"></span>
         <time id="wall-clock" class="wall-clock">00:00</time>
       </div>
     </header>
@@ -187,14 +198,6 @@
         <div id="programs-list" class="programs-list" role="listbox" aria-label="Programs"></div>
       </section>
     </div>
-
-    <footer id="guide-footer" class="guide-footer">
-      <span class="footer-item"><kbd>▲▼</kbd> Navigate</span>
-      <span class="footer-item"><kbd>◀▶</kbd> Categories / Channels / EPG</span>
-      <span class="footer-item"><kbd>OK</kbd> Watch Live / Replay</span>
-      <span class="footer-item"><kbd>▲</kbd> Top Bar (Fav / USB / Settings)</span>
-      <span class="footer-item"><kbd>BACK / ESC</kbd> Fullscreen TV</span>
-    </footer>
   </section>
 
   <!-- Clean Bottom OSD Bar -->
@@ -226,45 +229,39 @@
     </div>
 
     <div id="osd-actions-row" class="osd-actions-row" role="toolbar" aria-label="Playback controls">
-      <button id="osd-btn-restart" type="button" class="osd-btn" data-osd-act="restart">
-        <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 5h2.5v14H5V5zm4.5 7 9.5 6.5v-13L9.5 12z"/></svg>
-        <span id="osd-lbl-restart">From Start</span>
+      <button id="osd-btn-restart" type="button" class="osd-btn osd-btn--icon" data-osd-act="restart" aria-label="From Start">
+        <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5.5 5.5h2.5v13H5.5v-13zm4 6.5 9.5 6.5v-13L9.5 12z"/></svg>
       </button>
-      <button id="osd-btn-rew5m" type="button" class="osd-btn" data-osd-act="rew5m">
+      <button id="osd-btn-rew5m" type="button" class="osd-btn osd-btn--seek" data-osd-act="rew5m">
         <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.5 12 20 18V6l-8.5 6zm-9 0L11 18V6l-8.5 6z"/></svg>
         <span>-5m</span>
       </button>
-      <button id="osd-btn-rew30s" type="button" class="osd-btn" data-osd-act="rew30s">
+      <button id="osd-btn-rew30s" type="button" class="osd-btn osd-btn--seek" data-osd-act="rew30s">
         <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 12 17.5 19V5L6.5 12z"/></svg>
         <span>-30s</span>
       </button>
-      <button id="osd-btn-playpause" type="button" class="osd-btn" data-osd-act="playpause">
+      <button id="osd-btn-playpause" type="button" class="osd-btn osd-btn--icon osd-btn--playpause" data-osd-act="playpause" aria-label="Pause / Play">
         <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5.5v13L13.5 12 4 5.5zm11.5 0h2.5v13h-2.5v-13zm4.5 0h2.5v13H20v-13z"/></svg>
-        <span id="osd-lbl-playpause">Pause / Play</span>
       </button>
-      <button id="osd-btn-ff30s" type="button" class="osd-btn" data-osd-act="ff30s">
+      <button id="osd-btn-ff30s" type="button" class="osd-btn osd-btn--seek" data-osd-act="ff30s">
         <span>+30s</span>
         <svg class="osd-ico osd-ico--end" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 12 6.5 5v14l11-7z"/></svg>
       </button>
-      <button id="osd-btn-ff5m" type="button" class="osd-btn" data-osd-act="ff5m">
+      <button id="osd-btn-ff5m" type="button" class="osd-btn osd-btn--seek" data-osd-act="ff5m">
         <span>+5m</span>
         <svg class="osd-ico osd-ico--end" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.5 12 4 6v12l8.5-6zm9 0L13 6v12l8.5-6z"/></svg>
       </button>
-      <button id="osd-btn-golive" type="button" class="osd-btn osd-btn--live" data-osd-act="golive">
-        <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><circle fill="currentColor" cx="12" cy="12" r="5.5"/></svg>
-        <span id="osd-lbl-golive">Live</span>
+      <button id="osd-btn-golive" type="button" class="osd-btn osd-btn--icon osd-btn--live" data-osd-act="golive" aria-label="Live">
+        <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm-5.3-1.8a7.5 7.5 0 0 0 0 10.6l1.6-1.6a5.3 5.3 0 0 1 0-7.4L6.7 6.7zm10.6 0-1.6 1.6a5.3 5.3 0 0 1 0 7.4l1.6 1.6a7.5 7.5 0 0 0 0-10.6z"/></svg>
       </button>
-      <button id="osd-btn-guide" type="button" class="osd-btn" data-osd-act="guide">
-        <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 6.5h16v2.2H4V6.5zm0 4.4h16v2.2H4v-2.2zm0 4.4h16v2.2H4v-2.2z"/></svg>
-        <span id="osd-lbl-guide">Guide</span>
+      <button id="osd-btn-guide" type="button" class="osd-btn osd-btn--icon" data-osd-act="guide" aria-label="Guide">
+        <svg class="osd-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 6h2.5v2.5H4V6zm4.5 0H20v2.5H8.5V6zM4 10.8h2.5v2.5H4v-2.5zm4.5 0H20v2.5H8.5v-2.5zM4 15.5h2.5V18H4v-2.5zm4.5 0H20V18H8.5v-2.5z"/></svg>
       </button>
     </div>
 
     <div class="osd-bottom">
-      <span id="osd-next-info" class="osd-next-info">Press OK for Channel Guide</span>
-      <span id="osd-controls-hint" class="osd-controls-hint">
-        <kbd>OK</kbd> Guide &nbsp;·&nbsp; <kbd>▲▼</kbd> Channel &nbsp;·&nbsp; <kbd>◀</kbd> EPG &nbsp;·&nbsp; <kbd>▶</kbd> Info
-      </span>
+      <span id="osd-next-info" class="osd-next-info"></span>
+      <span id="osd-controls-hint" class="osd-controls-hint is-hidden"></span>
     </div>
   </aside>
 
@@ -327,6 +324,13 @@
             <span id="lbl-cycle-lang" class="field-caption">Language (OK to cycle)</span>
             <button id="btn-cycle-lang" class="modal-control btn-cycle" type="button" tabindex="-1">
               ▸ English
+            </button>
+          </div>
+
+          <div class="field-col">
+            <span id="lbl-cycle-search" class="field-caption">Search Bar (OK to cycle)</span>
+            <button id="btn-cycle-search" class="modal-control btn-cycle" type="button" tabindex="-1">
+              ▸ Off
             </button>
           </div>
         </div>
